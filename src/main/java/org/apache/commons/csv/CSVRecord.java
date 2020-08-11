@@ -27,23 +27,23 @@ import java.util.Map;
  *
  * @version $Id$
  */
-public class CSVRecord implements Serializable, Iterable<String> {
-
-    private static final long serialVersionUID = 1L;
+public final class CSVRecord implements Serializable, Iterable<String> {
 
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    /** The values of the record */
-    private final String[] values;
-
-    /** The column name to index mapping. */
-    private final Map<String, Integer> mapping;
+    private static final long serialVersionUID = 1L;
 
     /** The accumulated comments (if any) */
     private final String comment;
 
+    /** The column name to index mapping. */
+    private final Map<String, Integer> mapping;
+
     /** The record number. */
     private final long recordNumber;
+
+    /** The values of the record */
+    private final String[] values;
 
     CSVRecord(final String[] values, final Map<String, Integer> mapping,
             final String comment, final long recordNumber) {
@@ -51,6 +51,17 @@ public class CSVRecord implements Serializable, Iterable<String> {
         this.values = values != null ? values : EMPTY_STRING_ARRAY;
         this.mapping = mapping;
         this.comment = comment;
+    }
+
+    /**
+     * Returns a value by {@link Enum}.
+     *
+     * @param e
+     *            an enum
+     * @return the String at the given enum String
+     */
+    public String get(Enum<?> e) {
+        return get(e.toString());
     }
 
     /**
@@ -69,12 +80,13 @@ public class CSVRecord implements Serializable, Iterable<String> {
      *
      * @param name
      *            the name of the column to be retrieved.
-     * @return the column value, or {@code null} if the column name is not found
+     * @return the column value, maybe null depending on {@link CSVFormat#getNullString()}.
      * @throws IllegalStateException
      *             if no header mapping was provided
      * @throws IllegalArgumentException
-     *             if the record is inconsistent
+     *             if {@code name} is not mapped or if the record is inconsistent
      * @see #isConsistent()
+     * @see CSVFormat#withNullString(String)
      */
     public String get(final String name) {
         if (mapping == null) {
@@ -82,60 +94,17 @@ public class CSVRecord implements Serializable, Iterable<String> {
                     "No header mapping was specified, the record values can't be accessed by name");
         }
         final Integer index = mapping.get(name);
-        try {
-            return index != null ? values[index.intValue()] : null;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "Index for header '%s' is %d but CSVRecord only has %d values!",
-                            name, index.intValue(), values.length));
+        if (index == null) {
+            throw new IllegalArgumentException(String.format("Mapping for %s not found, expected one of %s", name,
+                    mapping.keySet()));
         }
-    }
-
-    /**
-     * Returns true if this record is consistent, false if not. Currently, the only check is matching the record size to
-     * the header size. Some programs can export files that fails this test but still produce parsable files.
-     *
-     * @return true of this record is valid, false if not
-     * @see CSVParserTest#org.apache.commons.csv.CSVParserTest.testMappedButNotSetAsOutlook2007ContactExport()
-     */
-    public boolean isConsistent() {
-        return mapping == null ? true : mapping.size() == values.length;
-    }
-
-    /**
-     * Checks whether a given column is mapped.
-     *
-     * @param name
-     *            the name of the column to be retrieved.
-     * @return whether a given columns is mapped.
-     */
-    public boolean isMapped(final String name) {
-        return mapping != null ? mapping.containsKey(name) : false;
-    }
-
-    /**
-     * Checks whether a given columns is mapped and has a value.
-     *
-     * @param name
-     *            the name of the column to be retrieved.
-     * @return whether a given columns is mapped.
-     */
-    public boolean isSet(final String name) {
-        return isMapped(name) && mapping.get(name).intValue() < values.length;
-    }
-
-    /**
-     * Returns an iterator over the values of this record.
-     *
-     * @return an iterator over the values of this record.
-     */
-    public Iterator<String> iterator() {
-        return Arrays.asList(values).iterator();
-    }
-
-    String[] values() {
-        return values;
+        try {
+            return values[index.intValue()];
+        } catch (final ArrayIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(String.format(
+                    "Index for header '%s' is %d but CSVRecord only has %d values!", name, index,
+                    Integer.valueOf(values.length)));
+        }
     }
 
     /**
@@ -158,6 +127,47 @@ public class CSVRecord implements Serializable, Iterable<String> {
     }
 
     /**
+     * Returns true if this record is consistent, false if not. Currently, the only check is matching the record size to
+     * the header size. Some programs can export files that fails this test but still produce parsable files.
+     *
+     * @return true of this record is valid, false if not
+     */
+    public boolean isConsistent() {
+        return mapping == null ? true : mapping.size() == values.length;
+    }
+
+    /**
+     * Checks whether a given column is mapped, i.e. its name has been defined to the parser.
+     *
+     * @param name
+     *            the name of the column to be retrieved.
+     * @return whether a given column is mapped.
+     */
+    public boolean isMapped(final String name) {
+        return mapping != null ? mapping.containsKey(name) : false;
+    }
+
+    /**
+     * Checks whether a given columns is mapped and has a value.
+     *
+     * @param name
+     *            the name of the column to be retrieved.
+     * @return whether a given columns is mapped and has a value
+     */
+    public boolean isSet(final String name) {
+        return isMapped(name) && mapping.get(name).intValue() < values.length;
+    }
+
+    /**
+     * Returns an iterator over the values of this record.
+     *
+     * @return an iterator over the values of this record.
+     */
+    public Iterator<String> iterator() {
+        return Arrays.asList(values).iterator();
+    }
+
+    /**
      * Returns the number of values in this record.
      *
      * @return the number of values.
@@ -170,5 +180,10 @@ public class CSVRecord implements Serializable, Iterable<String> {
     public String toString() {
         return Arrays.toString(values);
     }
+
+    String[] values() {
+        return values;
+    }
+
 
 }

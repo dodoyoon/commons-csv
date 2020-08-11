@@ -1,6 +1,5 @@
-org.apache.commons.csv.CSVFormat$CSVFormatBuilder
+org.apache.commons.csv.Assertions
 org.apache.commons.csv.CSVFormat
-org.apache.commons.csv.CSVLexer
 org.apache.commons.csv.CSVParser$1
 org.apache.commons.csv.CSVParser$2
 org.apache.commons.csv.CSVParser

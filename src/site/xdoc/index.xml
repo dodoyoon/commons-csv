@@ -25,19 +25,20 @@ limitations under the License.
 <section name="Using Commons CSV">
   <p>Commons CSV reads and writes files in variations of the Comma Separated Value (CSV) format.</p>
   <p>To parse an Excel CSV file, write:</p>
-  <source>Reader in = ...;
-Iterable&lt;CSVRecord&gt; parser = CSVFormat.EXCEL.parse(in);
-for (CSVRecord record : parser) {
-    ...
-}</source>  
-  <p>Other formats are available, please consult the Javadoc for <a href="apidocs/org/apache/commons/csv/CSVFormat.html">CSVFormat</a> and 
-  <a href="apidocs/org/apache/commons/csv/CSVParser.html">CSVParser</a></p>
+  <source>Reader in = new FileReader(&quot;path/to/file.csv&quot;);
+Iterable&lt;CSVRecord&gt; records = CSVFormat.EXCEL.parse(in);
+for (CSVRecord record : records) {
+  String lastName = record.get("Last Name");
+  String firstName = record.get("First Name");
+}</source>
+  <p>Other formats are available, please consult the Javadoc for <a href="apidocs/org/apache/commons/csv/CSVFormat.html">CSVFormat</a> and
+  <a href="apidocs/org/apache/commons/csv/CSVParser.html">CSVParser</a>.</p>
 </section>
 
 <section name="Getting the code">
   <p>There are currently no official downloads, and will not be until version 1.0 is released, but nightly builds may be available from <a href="http://people.apache.org/builds/commons/nightly/commons-csv/">http://people.apache.org/builds/commons/nightly/commons-csv/</a>. </p>
   <p>The latest code can be checked out from our Subversion repository at <a href="http://svn.apache.org/repos/asf/commons/proper/csv/trunk/">http://svn.apache.org/repos/asf/commons/proper/csv/trunk/</a>. </p>
-  <p>You can build the component using Apache Maven 3. For example: mvn clean site. Maven 2 will not work.</p>
+  <p>You can build the component using Apache Maven 3. For example: mvn clean package. Maven 2 will not work.</p>
 </section>
 
 <section name="Reporting bugs">

@@ -33,7 +33,7 @@ import java.sql.SQLException;
  *
  * @version $Id$
  */
-public class CSVPrinter implements Flushable, Closeable {
+public final class CSVPrinter implements Flushable, Closeable {
 
     /** The place that the values get written. */
     private final Appendable out;
@@ -49,15 +49,19 @@ public class CSVPrinter implements Flushable, Closeable {
      * (encapsulation and escaping with a different character) are not supported.
      *
      * @param out
-     *            stream to which to print.
+     *            stream to which to print. Must not be null.
      * @param format
-     *            the CSV format. If null the default format is used ({@link CSVFormat#DEFAULT})
+     *            the CSV format. Must not be null.
      * @throws IllegalArgumentException
-     *             thrown if the parameters of the format are inconsistent
+     *             thrown if the parameters of the format are inconsistent or if either out or format are null.
      */
     public CSVPrinter(final Appendable out, final CSVFormat format) {
+        Assertions.notNull(out, "out");
+        Assertions.notNull(format, "format");
+
         this.out = out;
-        this.format = format == null ? CSVFormat.DEFAULT : format;
+        this.format = format;
+        this.format.validate();
     }
 
     // ======================================================
@@ -163,33 +167,27 @@ public class CSVPrinter implements Flushable, Closeable {
 
     private void print(final Object object, final CharSequence value,
             final int offset, final int len) throws IOException {
+        if (!newRecord) {
+            out.append(format.getDelimiter());
+        }
         if (format.isQuoting()) {
+            // the original object is needed so can check for Number
             printAndQuote(object, value, offset, len);
         } else if (format.isEscaping()) {
             printAndEscape(value, offset, len);
         } else {
-            printDelimiter();
             out.append(value, offset, offset + len);
         }
-    }
-
-    void printDelimiter() throws IOException {
-        if (newRecord) {
-            newRecord = false;
-        } else {
-            out.append(format.getDelimiter());
-        }
+        newRecord = false;
     }
 
     /*
      * Note: must only be called if escaping is enabled, otherwise will generate NPE
      */
-    void printAndEscape(final CharSequence value, final int offset, final int len) throws IOException {
+    private void printAndEscape(final CharSequence value, final int offset, final int len) throws IOException {
         int start = offset;
         int pos = offset;
         final int end = offset + len;
-
-        printDelimiter();
 
         final char delim = format.getDelimiter();
         final char escape = format.getEscape().charValue();
@@ -225,15 +223,13 @@ public class CSVPrinter implements Flushable, Closeable {
     /*
      * Note: must only be called if quoting is enabled, otherwise will generate NPE
      */
-    void printAndQuote(final Object object, final CharSequence value,
+    // the original object is needed so can check for Number
+    private void printAndQuote(final Object object, final CharSequence value,
             final int offset, final int len) throws IOException {
-        final boolean first = newRecord; // is this the first value on this line?
         boolean quote = false;
         int start = offset;
         int pos = offset;
         final int end = offset + len;
-
-        printDelimiter();
 
         final char delimChar = format.getDelimiter();
         final char quoteChar = format.getQuoteChar().charValue();
@@ -250,21 +246,23 @@ public class CSVPrinter implements Flushable, Closeable {
             quote = !(object instanceof Number);
             break;
         case NONE:
-            throw new IllegalArgumentException("Not implemented yet");
+            // Use the existing escaping code
+            printAndEscape(value, offset, len);
+            return;
         case MINIMAL:
             if (len <= 0) {
                 // always quote an empty token that is the first
                 // on the line, as it may be the only thing on the
                 // line. If it were not quoted in that case,
                 // an empty line has no tokens.
-                if (first) {
+                if (newRecord) {
                     quote = true;
                 }
             } else {
                 char c = value.charAt(pos);
 
                 // Hmmm, where did this rule come from?
-                if (first && (c < '0' || (c > '9' && c < 'A') || (c > 'Z' && c < 'a') || (c > 'z'))) {
+                if (newRecord && (c < '0' || (c > '9' && c < 'A') || (c > 'Z' && c < 'a') || (c > 'z'))) {
                     quote = true;
                     // } else if (c == ' ' || c == '\f' || c == '\t') {
                 } else if (c <= COMMENT) {
@@ -343,8 +341,14 @@ public class CSVPrinter implements Flushable, Closeable {
      */
     public void print(final Object value) throws IOException {
         // null values are considered empty
-        final String strValue = value == null ? format.getNullToString() : value.toString();
-        print(value, strValue, 0, strValue.length());
+        String strValue;
+        if (value == null) {
+            final String nullString = format.getNullString();
+            strValue = nullString == null ? Constants.EMPTY : nullString;
+        } else {
+            strValue = value.toString();
+        }
+        this.print(value, strValue, 0, strValue.length());
     }
 
     /**

@@ -28,11 +28,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.commons.csv.CSVFormat.CSVFormatBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -89,19 +90,17 @@ public class CSVFileParserTest {
         final String[] split = line.split(" ");
         assertTrue(testName+" require 1 param", split.length >= 1);
          // first line starts with csv data file name
-        final BufferedReader csvFile = new BufferedReader(new FileReader(new File(BASE, split[0])));
-        final CSVFormatBuilder builder = CSVFormat.newBuilder(',').withQuoteChar('"');
-        CSVFormat format = builder.build(); 
+        CSVFormat format = CSVFormat.newFormat(',').withQuoteChar('"');
         boolean checkComments = false;
         for(int i=1; i < split.length; i++) {
             final String option = split[i];
             final String[] option_parts = option.split("=",2);
             if ("IgnoreEmpty".equalsIgnoreCase(option_parts[0])){
-                format = builder.withIgnoreEmptyLines(Boolean.parseBoolean(option_parts[1])).build();
+                format = format.withIgnoreEmptyLines(Boolean.parseBoolean(option_parts[1]));
             } else if ("IgnoreSpaces".equalsIgnoreCase(option_parts[0])) {
-                format = builder.withIgnoreSurroundingSpaces(Boolean.parseBoolean(option_parts[1])).build();
+                format = format.withIgnoreSurroundingSpaces(Boolean.parseBoolean(option_parts[1]));
             } else if ("CommentStart".equalsIgnoreCase(option_parts[0])) {
-                format = builder.withCommentStart(option_parts[1].charAt(0)).build();
+                format = format.withCommentStart(option_parts[1].charAt(0));
             } else if ("CheckComments".equalsIgnoreCase(option_parts[0])) {
                 checkComments = true;
             } else {
@@ -112,7 +111,9 @@ public class CSVFileParserTest {
         assertEquals(testName+" Expected format ", line, format.toString());
 
         // Now parse the file and compare against the expected results
-        for(final CSVRecord record : format.parse(csvFile)) {
+        // We use a buffered reader internally so no need to create one here.
+        final CSVParser parser = CSVParser.parse(new File(BASE, split[0]), format);
+        for(final CSVRecord record : parser) {
             String parsed = record.toString();
             if (checkComments) {
                 final String comment = record.getComment().replace("\n", "\\n");
@@ -122,6 +123,49 @@ public class CSVFileParserTest {
             }
             final int count = record.size();
             assertEquals(testName, readTestData(), count+":"+parsed);
+        }
+    }
+
+    @Test
+    public void testCSVUrl() throws Exception {
+        String line = readTestData();
+        assertNotNull("file must contain config line", line);
+        final String[] split = line.split(" ");
+        assertTrue(testName + " require 1 param", split.length >= 1);
+        // first line starts with csv data file name
+        CSVFormat format = CSVFormat.newFormat(',').withQuoteChar('"');
+        boolean checkComments = false;
+        for (int i = 1; i < split.length; i++) {
+            final String option = split[i];
+            final String[] option_parts = option.split("=", 2);
+            if ("IgnoreEmpty".equalsIgnoreCase(option_parts[0])) {
+                format = format.withIgnoreEmptyLines(Boolean.parseBoolean(option_parts[1]));
+            } else if ("IgnoreSpaces".equalsIgnoreCase(option_parts[0])) {
+                format = format.withIgnoreSurroundingSpaces(Boolean.parseBoolean(option_parts[1]));
+            } else if ("CommentStart".equalsIgnoreCase(option_parts[0])) {
+                format = format.withCommentStart(option_parts[1].charAt(0));
+            } else if ("CheckComments".equalsIgnoreCase(option_parts[0])) {
+                checkComments = true;
+            } else {
+                fail(testName + " unexpected option: " + option);
+            }
+        }
+        line = readTestData(); // get string version of format
+        assertEquals(testName + " Expected format ", line, format.toString());
+
+        // Now parse the file and compare against the expected results
+        URL resource = ClassLoader.getSystemResource("CSVFileParser/" + split[0]);
+        final CSVParser parser = CSVParser.parse(resource, Charset.forName("UTF-8"), format);
+        for (final CSVRecord record : parser) {
+            String parsed = record.toString();
+            if (checkComments) {
+                final String comment = record.getComment().replace("\n", "\\n");
+                if (comment != null) {
+                    parsed += "#" + comment;
+                }
+            }
+            final int count = record.size();
+            assertEquals(testName, readTestData(), count + ":" + parsed);
         }
     }
 }

@@ -6,43 +6,31 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package org.apache.commons.csv;
 
-import java.util.List;
-
-import org.junit.Assert;
-
 /**
- * Utility methods for test cases
+ * Utility class for input parameter validation
  *
  * @version $Id$
  */
-final class Utils {
+final class Assertions {
 
-    private Utils() {
+    private Assertions() {
+        // can not be instantiated
     }
 
-    /**
-     * Checks if the 2d array has the same contents as the list of records.
-     *
-     * @param message the message to be displayed
-     * @param expected the 2d array of expected results
-     * @param actual the List of {@link CSVRecord} entries, each containing an array of values
-     */
-    public static void compare(final String message, final String[][] expected, final List<CSVRecord> actual) {
-        Assert.assertEquals(message+"  - outer array size", expected.length, actual.size());
-        for(int i = 0; i < expected.length; i++) {
-            Assert.assertArrayEquals(message+" (entry "+i+")",expected[i], actual.get(i).values());
+    public static void notNull(Object parameter, String parameterName) {
+        if (parameter == null) {
+            throw new IllegalArgumentException("Parameter '" + parameterName + "' must not be null!");
         }
     }
 }

@@ -18,10 +18,10 @@ package org.apache.commons.csv;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import org.junit.Before;
@@ -29,6 +29,8 @@ import org.junit.Test;
 
 public class CSVRecordTest {
 
+    private enum EnumFixture { UNKNOWN_COLUMN }
+    
     private String[] values;
     private CSVRecord record, recordWithHeader;
     private Map<String, Integer> header;
@@ -69,6 +71,26 @@ public class CSVRecordTest {
         recordWithHeader.get("fourth");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetUnmappedName() {
+        assertNull(recordWithHeader.get("fourth"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetUnmappedEnum() {
+        assertNull(recordWithHeader.get(EnumFixture.UNKNOWN_COLUMN));
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void testGetUnmappedNegativeInt() {
+        assertNull(recordWithHeader.get(Integer.MIN_VALUE));
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void testGetUnmappedPositiveInt() {
+        assertNull(recordWithHeader.get(Integer.MAX_VALUE));
+    }
+
     @Test
     public void testIsConsistent() {
         assertTrue(record.isConsistent());
@@ -95,8 +117,7 @@ public class CSVRecordTest {
     @Test
     public void testIterator() {
         int i = 0;
-        for (Iterator<String> itr = record.iterator(); itr.hasNext();) {
-            String value = itr.next();
+        for (String value : record) {
             assertEquals(values[i], value);
             i++;
         }
