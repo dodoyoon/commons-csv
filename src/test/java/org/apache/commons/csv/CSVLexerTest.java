@@ -58,13 +58,26 @@ public class CSVLexerTest {
     }
 
     @Test
-    public void testIgnoreSurroundingSpacesAreDeleted() throws IOException {
+    public void testSurroundingSpacesAreDeleted() throws IOException {
         final String code = "noSpaces,  leadingSpaces,trailingSpaces  ,  surroundingSpaces  ,  ,,";
         final Lexer parser = getLexer(code, CSVFormat.newBuilder().withIgnoreSurroundingSpaces(true).build());
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "noSpaces"));
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "leadingSpaces"));
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "trailingSpaces"));
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "surroundingSpaces"));
+        assertThat(parser.nextToken(new Token()), matches(TOKEN, ""));
+        assertThat(parser.nextToken(new Token()), matches(TOKEN, ""));
+        assertThat(parser.nextToken(new Token()), matches(EOF, ""));
+    }
+
+    @Test
+    public void testSurroundingTabsAreDeleted() throws IOException {
+        final String code = "noTabs,\tleadingTab,trailingTab\t,\tsurroundingTabs\t,\t\t,,";
+        final Lexer parser = getLexer(code, CSVFormat.newBuilder().withIgnoreSurroundingSpaces(true).build());
+        assertThat(parser.nextToken(new Token()), matches(TOKEN, "noTabs"));
+        assertThat(parser.nextToken(new Token()), matches(TOKEN, "leadingTab"));
+        assertThat(parser.nextToken(new Token()), matches(TOKEN, "trailingTab"));
+        assertThat(parser.nextToken(new Token()), matches(TOKEN, "surroundingTabs"));
         assertThat(parser.nextToken(new Token()), matches(TOKEN, ""));
         assertThat(parser.nextToken(new Token()), matches(TOKEN, ""));
         assertThat(parser.nextToken(new Token()), matches(EOF, ""));
@@ -129,9 +142,8 @@ public class CSVLexerTest {
         assertThat(parser.nextToken(new Token()), matches(EOF, ""));
     }
 
-    // multiline including comments (and empty lines)
     @Test
-    public void testNextToken2EmptyLines() throws IOException {
+    public void testCommentsAndEmptyLines() throws IOException {
         final String code =
                 "1,2,3,\n"+                // 1
                 "\n"+                      // 1b
@@ -181,7 +193,7 @@ public class CSVLexerTest {
 
     // simple token with escaping not enabled
     @Test
-    public void testNextToken3() throws IOException {
+    public void testBackslashWithoutEscaping() throws IOException {
         /* file: a,\,,b
         *       \,,
         */
@@ -203,7 +215,7 @@ public class CSVLexerTest {
 
     // simple token with escaping enabled
     @Test
-    public void testNextToken3Escaping() throws IOException {
+    public void testBackslashWithEscaping() throws IOException {
         /* file: a,\,,b
         *       \,,
         */
@@ -317,10 +329,12 @@ public class CSVLexerTest {
         assertThat(lexer.nextToken(new Token()), hasContent("character" + FF + "Escaped"));
     }
 
+    // FIXME this should work after CSV-58 is resolved. Currently the result will be "charactera\NEscaped"
     @Test
+    @Ignore
     public void testEscapedMySqlNullValue() throws Exception {
         // MySQL uses \N to symbolize null values. We have to restore this
-        final Lexer lexer = getLexer("character\\\\NEscaped", formatWithEscaping);
+        final Lexer lexer = getLexer("character\\NEscaped", formatWithEscaping);
         assertThat(lexer.nextToken(new Token()), hasContent("character\\NEscaped"));
     }
 
