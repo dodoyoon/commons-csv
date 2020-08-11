@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,19 +17,27 @@
 
 package org.apache.commons.csv;
 
+import static org.apache.commons.csv.Constants.UNDEFINED;
+import static org.apache.commons.csv.Token.Type.EOF;
+import static org.apache.commons.csv.Token.Type.EORECORD;
+import static org.apache.commons.csv.Token.Type.TOKEN;
+
 import java.io.IOException;
 
-import static org.apache.commons.csv.Token.Type.*;
-
+/**
+ * 
+ * 
+ * @version $Id$
+ */
 class CSVLexer1 extends Lexer {
 
     private final StringBuilder wsBuf = new StringBuilder();
-    
+
     // ctor needs to be public so can be called dynamically by PerformanceTest class
-    public CSVLexer1(CSVFormat format, ExtendedBufferedReader in) {
+    public CSVLexer1(final CSVFormat format, final ExtendedBufferedReader in) {
         super(format, in);
     }
-    
+
     /**
      * Returns the next token.
      * <p/>
@@ -44,7 +52,7 @@ class CSVLexer1 extends Lexer {
         wsBuf.setLength(0); // reuse
 
         // get the last read char (required for empty line detection)
-        int lastChar = in.readAgain();
+        int lastChar = in.getLastChar();
 
         //  read the next char and set eol
         /* note: unfortunately isEndOfLine may consumes a character silently.
@@ -52,19 +60,19 @@ class CSVLexer1 extends Lexer {
         *       is to call 'readAgain' on the stream...
         */
         int c = in.read();
-        boolean eol = isEndOfLine(c);
-        c = in.readAgain();
+        boolean eol = readEndOfLine(c);
+        c = in.getLastChar();
 
         //  empty line detection: eol AND (last char was EOL or beginning)
-        if (format.isEmptyLinesIgnored()) {
+        if (format.getIgnoreEmptyLines()) {
             while (eol
-                    && (lastChar == '\n' || lastChar == '\r' || lastChar == ExtendedBufferedReader.UNDEFINED)
+                    && (lastChar == '\n' || lastChar == '\r' || lastChar == UNDEFINED)
                     && !isEndOfFile(lastChar)) {
                 // go on char ahead ...
                 lastChar = c;
                 c = in.read();
-                eol = isEndOfLine(c);
-                c = in.readAgain();
+                eol = readEndOfLine(c);
+                c = in.getLastChar();
                 // reached end of file without any content (empty line at the end)
                 if (isEndOfFile(c)) {
                     tkn.type = EOF;
@@ -82,19 +90,20 @@ class CSVLexer1 extends Lexer {
         //  important: make sure a new char gets consumed in each iteration
         while (!tkn.isReady && tkn.type != EOF) {
             // ignore whitespaces at beginning of a token
-            if (format.isSurroundingSpacesIgnored()) {
+            if (format.getIgnoreSurroundingSpaces()) {
                 while (isWhitespace(c) && !eol) {
                     wsBuf.append((char) c);
                     c = in.read();
-                    eol = isEndOfLine(c);
+                    eol = readEndOfLine(c);
                 }
             }
-            
+
             // ok, start of token reached: comment, encapsulated, or token
             if (c == format.getCommentStart()) {
                 // ignore everything till end of line and continue (incr linecount)
                 in.readLine();
-                tkn = nextToken(tkn.reset());
+                tkn.reset();
+                tkn = nextToken(tkn);
             } else if (c == format.getDelimiter()) {
                 // empty token return TOKEN("")
                 tkn.type = TOKEN;
@@ -104,7 +113,7 @@ class CSVLexer1 extends Lexer {
                 //noop: tkn.content.append("");
                 tkn.type = EORECORD;
                 tkn.isReady = true;
-            } else if (c == format.getEncapsulator()) {
+            } else if (c == format.getQuoteChar()) {
                 // consume encapsulated token
                 encapsulatedTokenLexer(tkn, c);
             } else if (isEndOfFile(c)) {
@@ -115,7 +124,7 @@ class CSVLexer1 extends Lexer {
             } else {
                 // next token must be a simple token
                 // add removed blanks when not ignoring whitespace chars...
-                if (!format.isSurroundingSpacesIgnored()) {
+                if (!format.getIgnoreSurroundingSpaces()) {
                     tkn.content.append(wsBuf);
                 }
                 simpleTokenLexer(tkn, c);
@@ -141,9 +150,9 @@ class CSVLexer1 extends Lexer {
      * @return the filled token
      * @throws IOException on stream access error
      */
-    private Token simpleTokenLexer(Token tkn, int c) throws IOException {
+    private Token simpleTokenLexer(final Token tkn, int c) throws IOException {
         while (true) {
-            if (isEndOfLine(c)) {
+            if (readEndOfLine(c)) {
                 // end of record
                 tkn.type = EORECORD;
                 tkn.isReady = true;
@@ -159,7 +168,7 @@ class CSVLexer1 extends Lexer {
                 tkn.isReady = true;
                 break;
             } else if (c == format.getEscape()) {
-                tkn.content.append((char) readEscape(c));
+                tkn.content.append((char) readEscape());
             } else {
                 tkn.content.append((char) c);
             }
@@ -167,7 +176,7 @@ class CSVLexer1 extends Lexer {
             c = in.read();
         }
 
-        if (format.isSurroundingSpacesIgnored()) {
+        if (format.getIgnoreSurroundingSpaces()) {
             trimTrailingSpaces(tkn.content);
         }
 
@@ -187,18 +196,18 @@ class CSVLexer1 extends Lexer {
      * @return a valid token object
      * @throws IOException on invalid state
      */
-    private Token encapsulatedTokenLexer(Token tkn, int c) throws IOException {
+    private Token encapsulatedTokenLexer(final Token tkn, int c) throws IOException {
         // save current line
-        int startLineNumber = getLineNumber();
+        final long startLineNumber = getLineNumber();
         // ignore the given delimiter
         // assert c == delimiter;
         while (true) {
             c = in.read();
-            
+
             if (c == format.getEscape()) {
-                tkn.content.append((char) readEscape(c));
-            } else if (c == format.getEncapsulator()) {
-                if (in.lookAhead() == format.getEncapsulator()) {
+                tkn.content.append((char) readEscape());
+            } else if (c == format.getQuoteChar()) {
+                if (in.lookAhead() == format.getQuoteChar()) {
                     // double or escaped encapsulator -> add single encapsulator to token
                     c = in.read();
                     tkn.content.append((char) c);
@@ -214,7 +223,7 @@ class CSVLexer1 extends Lexer {
                             tkn.type = EOF;
                             tkn.isReady = true;
                             return tkn;
-                        } else if (isEndOfLine(c)) {
+                        } else if (readEndOfLine(c)) {
                             // ok eo token reached
                             tkn.type = EORECORD;
                             tkn.isReady = true;

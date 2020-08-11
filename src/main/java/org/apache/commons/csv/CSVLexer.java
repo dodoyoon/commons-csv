@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,148 +17,158 @@
 
 package org.apache.commons.csv;
 
+import static org.apache.commons.csv.Token.Type.COMMENT;
+import static org.apache.commons.csv.Token.Type.EOF;
+import static org.apache.commons.csv.Token.Type.EORECORD;
+import static org.apache.commons.csv.Token.Type.INVALID;
+import static org.apache.commons.csv.Token.Type.TOKEN;
+
 import java.io.IOException;
 
-import static org.apache.commons.csv.Token.Type.*;
+/**
+ *
+ *
+ * @version $Id$
+ */
+final class CSVLexer extends Lexer {
 
-class CSVLexer extends Lexer {
-
-    // ctor needs to be public so can be called dynamically by PerformanceTest class
-    public CSVLexer(CSVFormat format, ExtendedBufferedReader in) {
+    /** INTERNAL API. ctor needs to be public so can be called dynamically by PerformanceTest class */
+    CSVLexer(final CSVFormat format, final ExtendedBufferedReader in) {
         super(format, in);
     }
-    
+
     /**
      * Returns the next token.
      * <p/>
      * A token corresponds to a term, a record change or an end-of-file indicator.
      *
-     * @param tkn an existing Token object to reuse. The caller is responsible to initialize the Token.
+     * @param token
+     *            an existing Token object to reuse. The caller is responsible to initialize the Token.
      * @return the next token found
-     * @throws java.io.IOException on stream access error
+     * @throws java.io.IOException
+     *             on stream access error
      */
     @Override
-    Token nextToken(Token tkn) throws IOException {
+    Token nextToken(final Token token) throws IOException {
 
         // get the last read char (required for empty line detection)
-        int lastChar = in.readAgain();
+        int lastChar = in.getLastChar();
 
-        //  read the next char and set eol
-        /* note: unfortunately isEndOfLine may consumes a character silently.
-        *       this has no effect outside of the method. so a simple workaround
-        *       is to call 'readAgain' on the stream...
-        */
+        // read the next char and set eol
         int c = in.read();
-        boolean eol = isEndOfLine(c);
-        c = in.readAgain();
+        /*
+         * Note: The following call will swallow LF if c == CR. But we don't need to know if the last char was CR or LF
+         * - they are equivalent here.
+         */
+        boolean eol = readEndOfLine(c);
 
-        //  empty line detection: eol AND (last char was EOL or beginning)
-        if (emptyLinesIgnored) {
-            while (eol
-                    && (lastChar == '\n' || lastChar == '\r' || lastChar == ExtendedBufferedReader.UNDEFINED)
-                    && !isEndOfFile(lastChar)) {
+        // empty line detection: eol AND (last char was EOL or beginning)
+        if (ignoreEmptyLines) {
+            while (eol && isStartOfLine(lastChar)) {
                 // go on char ahead ...
                 lastChar = c;
                 c = in.read();
-                eol = isEndOfLine(c);
-                c = in.readAgain();
+                eol = readEndOfLine(c);
                 // reached end of file without any content (empty line at the end)
                 if (isEndOfFile(c)) {
-                    tkn.type = EOF;
+                    token.type = EOF;
                     // don't set tkn.isReady here because no content
-                    return tkn;
+                    return token;
                 }
             }
         }
 
         // did we reach eof during the last iteration already ? EOF
         if (isEndOfFile(lastChar) || (!isDelimiter(lastChar) && isEndOfFile(c))) {
-            tkn.type = EOF;
+            token.type = EOF;
             // don't set tkn.isReady here because no content
-            return tkn;
+            return token;
         }
 
-        //  important: make sure a new char gets consumed in each iteration
-        while (tkn.type == INVALID) {
+        if (isStartOfLine(lastChar) && isCommentStart(c)) {
+            final String comment = in.readLine().trim();
+            token.content.append(comment);
+            token.type = COMMENT;
+            return token;
+        }
+
+        // important: make sure a new char gets consumed in each iteration
+        while (token.type == INVALID) {
             // ignore whitespaces at beginning of a token
-            if (surroundingSpacesIgnored) {
+            if (ignoreSurroundingSpaces) {
                 while (isWhitespace(c) && !eol) {
                     c = in.read();
-                    eol = isEndOfLine(c);
+                    eol = readEndOfLine(c);
                 }
             }
-            
-            // ok, start of token reached: comment, encapsulated, or token
-            if (isCommentStart(c)) {
-                // ignore everything till end of line and continue (incr linecount)
-                in.readLine();
-                tkn = nextToken(tkn.reset());
-            } else if (isDelimiter(c)) {
+
+            // ok, start of token reached: encapsulated, or token
+            if (isDelimiter(c)) {
                 // empty token return TOKEN("")
-                tkn.type = TOKEN;
+                token.type = TOKEN;
             } else if (eol) {
                 // empty token return EORECORD("")
-                //noop: tkn.content.append("");
-                tkn.type = EORECORD;
-            } else if (isEncapsulator(c)) {
+                // noop: tkn.content.append("");
+                token.type = EORECORD;
+            } else if (isQuoteChar(c)) {
                 // consume encapsulated token
-                encapsulatedTokenLexer(tkn, c);
+                parseEncapsulatedToken(token);
             } else if (isEndOfFile(c)) {
                 // end of file return EOF()
-                //noop: tkn.content.append("");
-                tkn.type = EOF;
-                tkn.isReady = true; // there is data at EOF
+                // noop: tkn.content.append("");
+                token.type = EOF;
+                token.isReady = true; // there is data at EOF
             } else {
                 // next token must be a simple token
                 // add removed blanks when not ignoring whitespace chars...
-                simpleTokenLexer(tkn, c);
+                parseSimpleToken(token, c);
             }
         }
-        return tkn;
+        return token;
     }
 
     /**
-     * A simple token lexer
+     * Parses a simple token.
      * <p/>
-     * Simple token are tokens which are not surrounded by encapsulators.
-     * A simple token might contain escaped delimiters (as \, or \;). The
-     * token is finished when one of the following conditions become true:
+     * Simple token are tokens which are not surrounded by encapsulators. A simple token might contain escaped
+     * delimiters (as \, or \;). The token is finished when one of the following conditions become true:
      * <ul>
-     *   <li>end of line has been reached (EORECORD)</li>
-     *   <li>end of stream has been reached (EOF)</li>
-     *   <li>an unescaped delimiter has been reached (TOKEN)</li>
+     * <li>end of line has been reached (EORECORD)</li>
+     * <li>end of stream has been reached (EOF)</li>
+     * <li>an unescaped delimiter has been reached (TOKEN)</li>
      * </ul>
      *
-     * @param tkn the current token
-     * @param c   the current character
+     * @param tkn
+     *            the current token
+     * @param c
+     *            the current character
      * @return the filled token
-     * @throws IOException on stream access error
+     * @throws IOException
+     *             on stream access error
      */
-    private Token simpleTokenLexer(Token tkn, int c) throws IOException {
+    private Token parseSimpleToken(final Token tkn, int c) throws IOException {
+        // Faster to use while(true)+break than while(tkn.type == INVALID)
         while (true) {
-            if (isEndOfLine(c)) {
-                // end of record
+            if (readEndOfLine(c)) {
                 tkn.type = EORECORD;
                 break;
             } else if (isEndOfFile(c)) {
-                // end of file
                 tkn.type = EOF;
                 tkn.isReady = true; // There is data at EOF
                 break;
             } else if (isDelimiter(c)) {
-                // end of token
                 tkn.type = TOKEN;
                 break;
             } else if (isEscape(c)) {
-                tkn.content.append((char) readEscape(c));
+                tkn.content.append((char) readEscape());
+                c = in.read(); // continue
             } else {
                 tkn.content.append((char) c);
+                c = in.read(); // continue
             }
-
-            c = in.read();
         }
 
-        if (surroundingSpacesIgnored) {
+        if (ignoreSurroundingSpaces) {
             trimTrailingSpaces(tkn.content);
         }
 
@@ -166,30 +176,36 @@ class CSVLexer extends Lexer {
     }
 
     /**
-     * An encapsulated token lexer
+     * Parses an encapsulated token.
      * <p/>
-     * Encapsulated tokens are surrounded by the given encapsulating-string.
-     * The encapsulator itself might be included in the token using a
-     * doubling syntax (as "", '') or using escaping (as in \", \').
-     * Whitespaces before and after an encapsulated token are ignored.
+     * Encapsulated tokens are surrounded by the given encapsulating-string. The encapsulator itself might be included
+     * in the token using a doubling syntax (as "", '') or using escaping (as in \", \'). Whitespaces before and after
+     * an encapsulated token are ignored. The token is finished when one of the following conditions become true:
+     * <ul>
+     * <li>an unescaped encapsulator has been reached, and is followed by optional whitespace then:</li>
+     * <ul>
+     * <li>delimiter (TOKEN)</li>
+     * <li>end of line (EORECORD)</li>
+     * </ul>
+     * <li>end of stream has been reached (EOF)</li> </ul>
      *
-     * @param tkn the current token
-     * @param c   the current character
+     * @param tkn
+     *            the current token
      * @return a valid token object
-     * @throws IOException on invalid state
+     * @throws IOException
+     *             on invalid state: EOF before closing encapsulator or invalid character before delimiter or EOL
      */
-    private Token encapsulatedTokenLexer(Token tkn, int c) throws IOException {
-        // save current line
-        int startLineNumber = getLineNumber();
-        // ignore the given delimiter
-        // assert c == delimiter;
+    private Token parseEncapsulatedToken(final Token tkn) throws IOException {
+        // save current line number in case needed for IOE
+        final long startLineNumber = getLineNumber();
+        int c;
         while (true) {
             c = in.read();
-            
+
             if (isEscape(c)) {
-                tkn.content.append((char) readEscape(c));
-            } else if (isEncapsulator(c)) {
-                if (isEncapsulator(in.lookAhead())) {
+                tkn.content.append((char) readEscape());
+            } else if (isQuoteChar(c)) {
+                if (isQuoteChar(in.lookAhead())) {
                     // double or escaped encapsulator -> add single encapsulator to token
                     c = in.read();
                     tkn.content.append((char) c);
@@ -204,19 +220,20 @@ class CSVLexer extends Lexer {
                             tkn.type = EOF;
                             tkn.isReady = true; // There is data at EOF
                             return tkn;
-                        } else if (isEndOfLine(c)) {
-                            // ok eo token reached
+                        } else if (readEndOfLine(c)) {
                             tkn.type = EORECORD;
                             return tkn;
                         } else if (!isWhitespace(c)) {
                             // error invalid char between token and next delimiter
-                            throw new IOException("(line " + getLineNumber() + ") invalid char between encapsulated token and delimiter");
+                            throw new IOException("(line " + getLineNumber() +
+                                    ") invalid char between encapsulated token and delimiter");
                         }
                     }
                 }
             } else if (isEndOfFile(c)) {
                 // error condition (end of file before end of token)
-                throw new IOException("(startline " + startLineNumber + ") EOF reached before encapsulated token finished");
+                throw new IOException("(startline " + startLineNumber +
+                        ") EOF reached before encapsulated token finished");
             } else {
                 // consume character
                 tkn.content.append((char) c);
