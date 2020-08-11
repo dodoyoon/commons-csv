@@ -19,8 +19,11 @@ package org.apache.commons.csv;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * A CSV record parsed from a CSV file.
@@ -60,7 +63,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *            an enum
      * @return the String at the given enum String
      */
-    public String get(Enum<?> e) {
+    public String get(final Enum<?> e) {
         return get(e.toString());
     }
 
@@ -164,7 +167,20 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      * @return an iterator over the values of this record.
      */
     public Iterator<String> iterator() {
-        return Arrays.asList(values).iterator();
+        return toList().iterator();
+    }
+
+    /**
+     * Puts all values of this record into the given Map.
+     * 
+     * @param map The Map to populate.
+     * @return the given map.
+     */
+    <M extends Map<String, String>> M putIn(final M map) {
+        for (final Entry<String, Integer> entry : mapping.entrySet()) {
+            map.put(entry.getKey(), values[entry.getValue().intValue()]);
+        }
+        return map;
     }
 
     /**
@@ -174,6 +190,25 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      */
     public int size() {
         return values.length;
+    }
+
+    /**
+     * Converts the values to a List.
+     * 
+     * TODO: Maybe make this public?
+     * @return a new List
+     */
+    private List<String> toList() {
+        return Arrays.asList(values);
+    }
+
+    /**
+     * Copies this record into a new Map. The new map is not connect
+     * 
+     * @return A new Map. The map is empty if the record has no headers.
+     */
+    public Map<String, String> toMap() {
+        return putIn(new HashMap<String, String>(values.length));
     }
 
     @Override

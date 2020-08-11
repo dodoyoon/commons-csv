@@ -21,23 +21,29 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class CSVRecordTest {
 
     private enum EnumFixture { UNKNOWN_COLUMN }
-    
+
     private String[] values;
     private CSVRecord record, recordWithHeader;
     private Map<String, Integer> header;
 
     @Before
     public void setUp() throws Exception {
-        values = new String[] { "first", "second", "third" };
+        values = new String[] { "A", "B", "C" };
         record = new CSVRecord(values, null, null, 0);
         header = new HashMap<String, Integer>();
         header.put("first", Integer.valueOf(0));
@@ -60,25 +66,25 @@ public class CSVRecordTest {
         assertEquals(values[2], recordWithHeader.get("third"));
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testGetStringNoHeader() {
-        record.get("first");
-    }
-
     @Test(expected = IllegalArgumentException.class)
     public void testGetStringInconsistentRecord() {
         header.put("fourth", Integer.valueOf(4));
         recordWithHeader.get("fourth");
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testGetUnmappedName() {
-        assertNull(recordWithHeader.get("fourth"));
+    @Test(expected = IllegalStateException.class)
+    public void testGetStringNoHeader() {
+        record.get("first");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetUnmappedEnum() {
         assertNull(recordWithHeader.get(EnumFixture.UNKNOWN_COLUMN));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetUnmappedName() {
+        assertNull(recordWithHeader.get("fourth"));
     }
 
     @Test(expected = ArrayIndexOutOfBoundsException.class)
@@ -117,10 +123,54 @@ public class CSVRecordTest {
     @Test
     public void testIterator() {
         int i = 0;
-        for (String value : record) {
+        for (final String value : record) {
             assertEquals(values[i], value);
             i++;
         }
+    }
+
+    @Test
+    public void testPutInMap() {
+        final Map<String, String> map = new ConcurrentHashMap<String, String>();
+        this.recordWithHeader.putIn(map);
+        this.validateMap(map, false);
+        // Test that we can compile with assigment to the same map as the param.
+        final TreeMap<String, String> map2 = recordWithHeader.putIn(new TreeMap<String, String>());
+        this.validateMap(map2, false);
+    }
+
+    @Test
+    public void testRemoveAndAddColumns() throws IOException {
+        // do:
+        final CSVPrinter printer = new CSVPrinter(new StringBuilder(), CSVFormat.DEFAULT);
+        final Map<String, String> map = recordWithHeader.toMap();
+        map.remove("OldColumn");
+        map.put("ZColumn", "NewValue");
+        // check:
+        final ArrayList<String> list = new ArrayList<String>(map.values());
+        Collections.sort(list);
+        printer.printRecord(list);
+        Assert.assertEquals("A,B,C,NewValue" + CSVFormat.DEFAULT.getRecordSeparator(), printer.getOut().toString());
+    }
+
+    @Test
+    public void testToMap() {
+        final Map<String, String> map = this.recordWithHeader.toMap();
+        this.validateMap(map, true);
+    }
+
+    private void validateMap(final Map<String, String> map, final boolean allowsNulls) {
+        assertTrue(map.containsKey("first"));
+        assertTrue(map.containsKey("second"));
+        assertTrue(map.containsKey("third"));
+        assertFalse(map.containsKey("fourth"));
+        if (allowsNulls) {
+            assertFalse(map.containsKey(null));
+        }
+        assertEquals("A", map.get("first"));
+        assertEquals("B", map.get("second"));
+        assertEquals("C", map.get("third"));
+        assertEquals(null, map.get("fourth"));
     }
 
 }
