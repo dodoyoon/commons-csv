@@ -76,6 +76,8 @@ public class PerformanceTest {
             final InputStream input = new GZIPInputStream(new FileInputStream("src/test/resources/perf/worldcitiespop.txt.gz"));
             final OutputStream output = new FileOutputStream(BIG_FILE);
             IOUtils.copy(input, output);
+            input.close();
+            output.close();
             System.out.println(String.format("Decompressed test fixture %s: %,d bytes.", BIG_FILE, BIG_FILE.length()));
         }
         final int argc = args.length;
@@ -219,6 +221,7 @@ public class PerformanceTest {
            final Stats s = iterate(parser);
            reader.close();
            show("CSV", s, t0);
+           parser.close();
        }
        show();
    }
@@ -266,6 +269,8 @@ public class PerformanceTest {
                    break;
                 case COMMENT: // not really expecting these
                     break;
+                default:
+                    throw new IllegalStateException("Unexpected Token type: " + token.type);
               }
 
            } while (!token.type.equals(Token.Type.EOF));

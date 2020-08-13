@@ -29,6 +29,7 @@ import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +55,7 @@ import java.util.NoSuchElementException;
  * </p>
  * <p>
  * Alternatively parsers can also be created by passing a {@link Reader} directly to the sole constructor.
- * 
+ *
  * For those who like fluent APIs, parsers can be created using {@link CSVFormat#parse(java.io.Reader)} as a shortcut:
  * </p>
  * <pre>
@@ -197,8 +198,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         Assertions.notNull(charset, "charset");
         Assertions.notNull(format, "format");
 
-        return new CSVParser(new InputStreamReader(url.openStream(),
-                             charset == null ? Charset.forName("UTF-8") : charset), format);
+        return new CSVParser(new InputStreamReader(url.openStream(), charset), format);
     }
 
     // the following objects are shared to reduce garbage
@@ -310,7 +310,22 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *             on parse error or input read-failure
      */
     public List<CSVRecord> getRecords() throws IOException {
-        final List<CSVRecord> records = new ArrayList<CSVRecord>();
+        return getRecords(new ArrayList<CSVRecord>());
+    }
+
+    /**
+     * Parses the CSV input according to the given format and adds the content to the collection of {@link CSVRecord
+     * CSVRecords}.
+     * <p/>
+     * The returned content starts at the current parse-position in the stream.
+     * 
+     * @param records
+     *            The collection to add to.
+     * @return a collection of {@link CSVRecord CSVRecords}, may be empty
+     * @throws IOException
+     *             on parse error or input read-failure
+     */
+    public <T extends Collection<CSVRecord>> T getRecords(T records) throws IOException {
         CSVRecord rec;
         while ((rec = this.nextRecord()) != null) {
             records.add(rec);
@@ -320,7 +335,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
 
     /**
      * Initializes the name to index mapping if the format defines a header.
-     * 
+     *
      * @return null if the format has no header.
      */
     private Map<String, Integer> initializeHeader() throws IOException {
@@ -450,6 +465,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
                 sb.append(this.reusableToken.content);
                 this.reusableToken.type = TOKEN; // Read another token
                 break;
+            default:
+                throw new IllegalStateException("Unexpected Token type: " + this.reusableToken.type);
             }
         } while (this.reusableToken.type == TOKEN);
 

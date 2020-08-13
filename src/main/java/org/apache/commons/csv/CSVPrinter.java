@@ -240,6 +240,8 @@ public final class CSVPrinter implements Flushable, Closeable {
                 return;
             }
             break;
+        default:
+            throw new IllegalStateException("Unexpected Quote value: " + quotePolicy);
         }
 
         if (!quote) {
@@ -420,9 +422,9 @@ public final class CSVPrinter implements Flushable, Closeable {
     }
 
     /**
-     * Gets the target Appendable. 
-     * 
-     * @return the target Appendable. 
+     * Gets the target Appendable.
+     *
+     * @return the target Appendable.
      */
     public Appendable getOut() {
         return this.out;

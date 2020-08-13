@@ -42,6 +42,7 @@ import org.junit.Test;
  *
  * @version $Id$
  */
+@SuppressWarnings("boxing") // test code
 public class PerformanceTest {
 
     private final int max = 10;
@@ -59,6 +60,8 @@ public class PerformanceTest {
         final OutputStream output = new FileOutputStream(BIG_FILE);
         IOUtils.copy(input, output);
         System.out.println(String.format("Decompressed test fixture %s: %,d bytes.", BIG_FILE, BIG_FILE.length()));
+        input.close();
+        output.close();
     }
 
     private BufferedReader getBufferedReader() throws IOException {
