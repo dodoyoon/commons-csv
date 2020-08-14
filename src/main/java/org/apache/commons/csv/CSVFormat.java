@@ -293,8 +293,7 @@ public final class CSVFormat implements Serializable {
      * @param skipHeaderRecord TODO
      * @throws IllegalArgumentException if the delimiter is a line break character
      */
-    // package protected to give access without needing a synthetic accessor
-    CSVFormat(final char delimiter, final Character quoteChar,
+    private CSVFormat(final char delimiter, final Character quoteChar,
             final Quote quotePolicy, final Character commentStart,
             final Character escape, final boolean ignoreSurroundingSpaces,
             final boolean ignoreEmptyLines, final String recordSeparator,
@@ -355,6 +354,13 @@ public final class CSVFormat implements Serializable {
         } else if (!escape.equals(other.escape)) {
             return false;
         }
+        if (nullString == null) {
+            if (other.nullString != null) {
+                return false;
+            }
+        } else if (!nullString.equals(other.nullString)) {
+            return false;
+        }
         if (!Arrays.equals(header, other.header)) {
             return false;
         }
@@ -362,6 +368,9 @@ public final class CSVFormat implements Serializable {
             return false;
         }
         if (ignoreEmptyLines != other.ignoreEmptyLines) {
+            return false;
+        }
+        if (skipHeaderRecord != other.skipHeaderRecord) {
             return false;
         }
         if (recordSeparator == null) {
@@ -512,8 +521,10 @@ public final class CSVFormat implements Serializable {
         result = prime * result + ((quoteChar == null) ? 0 : quoteChar.hashCode());
         result = prime * result + ((commentStart == null) ? 0 : commentStart.hashCode());
         result = prime * result + ((escape == null) ? 0 : escape.hashCode());
+        result = prime * result + ((nullString == null) ? 0 : nullString.hashCode());
         result = prime * result + (ignoreSurroundingSpaces ? 1231 : 1237);
         result = prime * result + (ignoreEmptyLines ? 1231 : 1237);
+        result = prime * result + (skipHeaderRecord ? 1231 : 1237);
         result = prime * result + ((recordSeparator == null) ? 0 : recordSeparator.hashCode());
         result = prime * result + Arrays.hashCode(header);
         return result;
