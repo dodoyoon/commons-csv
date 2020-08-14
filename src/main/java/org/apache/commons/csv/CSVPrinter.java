@@ -48,7 +48,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * Currently, only a pure encapsulation format or a pure escaping format is supported. Hybrid formats (encapsulation
      * and escaping with a different character) are not supported.
      * </p>
-     * 
+     *
      * @param out
      *        stream to which to print. Must not be null.
      * @param format
@@ -64,7 +64,6 @@ public final class CSVPrinter implements Flushable, Closeable {
 
         this.out = out;
         this.format = format;
-        this.format.validate();
         // TODO: Is it a good idea to do this here instead of on the first call to a print method?
         // It seems a pain to have to track whether the header has already been printed or not.
         if (format.getHeader() != null) {

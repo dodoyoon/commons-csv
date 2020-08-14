@@ -191,10 +191,10 @@ public class CSVParserTest {
     @Test
     @Ignore("CSV-107")
     public void testBOM() throws IOException {
-        URL url = ClassLoader.getSystemClassLoader().getResource("CSVFileParser/bom.csv");
-        final CSVParser parser = CSVParser.parse(url, null, CSVFormat.EXCEL.withHeader());
+        final URL url = ClassLoader.getSystemClassLoader().getResource("CSVFileParser/bom.csv");
+        final CSVParser parser = CSVParser.parse(url, Charset.forName("UTF-8"), CSVFormat.EXCEL.withHeader());
         try {
-            for (CSVRecord record : parser) {
+            for (final CSVRecord record : parser) {
                 final String string = record.get("Date");
                 Assert.assertNotNull(string);
                 //System.out.println("date: " + record.get("Date"));
@@ -206,11 +206,11 @@ public class CSVParserTest {
 
     @Test
     public void testBOMInputStream() throws IOException {
-        URL url = ClassLoader.getSystemClassLoader().getResource("CSVFileParser/bom.csv");
-        Reader reader = new InputStreamReader(new BOMInputStream(url.openStream()), "UTF-8");
+        final URL url = ClassLoader.getSystemClassLoader().getResource("CSVFileParser/bom.csv");
+        final Reader reader = new InputStreamReader(new BOMInputStream(url.openStream()), "UTF-8");
         final CSVParser parser = new CSVParser(reader, CSVFormat.EXCEL.withHeader());
         try {
-            for (CSVRecord record : parser) {
+            for (final CSVRecord record : parser) {
                 final String string = record.get("Date");
                 Assert.assertNotNull(string);
                 //System.out.println("date: " + record.get("Date"));
@@ -493,7 +493,7 @@ public class CSVParserTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testDuplicateHeaderEntries() throws Exception {
+    public void testDuplicateHeaders() throws Exception {
         CSVParser.parse("a,b,a\n1,2,3\nx,y,z", CSVFormat.DEFAULT.withHeader(new String[]{}));
     }
 
@@ -541,13 +541,13 @@ public class CSVParserTest {
 
     /**
      * Tests reusing a parser to process new string records one at a time as they are being discovered. See [CSV-110].
-     * 
+     *
      * @throws IOException
      */
     @Test
     public void testGetOneLineOneParser() throws IOException {
-        PipedWriter writer = new PipedWriter();
-        PipedReader reader = new PipedReader(writer);
+        final PipedWriter writer = new PipedWriter();
+        final PipedReader reader = new PipedReader(writer);
         final CSVFormat format = CSVFormat.DEFAULT;
         final CSVParser parser = new CSVParser(reader, format);
         try {
@@ -631,6 +631,34 @@ public class CSVParserTest {
         }
 
         assertFalse(records.hasNext());
+    }
+
+    @Test
+    public void testHeaderMissing() throws Exception {
+        final Reader in = new StringReader("a,,c\n1,2,3\nx,y,z");
+
+        final Iterator<CSVRecord> records = CSVFormat.DEFAULT.withHeader().parse(in).iterator();
+
+        for (int i = 0; i < 2; i++) {
+            assertTrue(records.hasNext());
+            final CSVRecord record = records.next();
+            assertEquals(record.get(0), record.get("a"));
+            assertEquals(record.get(2), record.get("c"));
+        }
+
+        assertFalse(records.hasNext());
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void testHeadersMissingException() throws Exception {
+        final Reader in = new StringReader("a,,c,,d\n1,2,3,4\nx,y,z,zz");
+        CSVFormat.DEFAULT.withHeader().parse(in).iterator();
+    }
+
+    @Test
+    public void testHeadersMissing() throws Exception {
+        final Reader in = new StringReader("a,,c,,d\n1,2,3,4\nx,y,z,zz");
+        CSVFormat.DEFAULT.withHeader().withIgnoreEmptyHeaders(true).parse(in).iterator();
     }
 
     @Test
@@ -778,12 +806,12 @@ public class CSVParserTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testParseFileNullFormat() throws Exception {
-        CSVParser.parse(new File(""), null);
+        CSVParser.parse(new File(""), Charset.defaultCharset(), null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testParseNullFileFormat() throws Exception {
-        CSVParser.parse((File) null, CSVFormat.DEFAULT);
+        CSVParser.parse((File) null, Charset.defaultCharset(), CSVFormat.DEFAULT);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -793,7 +821,7 @@ public class CSVParserTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testParseNullUrlCharsetFormat() throws Exception {
-        CSVParser.parse(null, Charset.defaultCharset(), CSVFormat.DEFAULT);
+        CSVParser.parse((File) null, Charset.defaultCharset(), CSVFormat.DEFAULT);
     }
 
     @Test(expected = IllegalArgumentException.class)

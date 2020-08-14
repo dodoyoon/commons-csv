@@ -17,10 +17,9 @@
 
 package org.apache.commons.csv;
 
-import static org.apache.commons.csv.Token.Type.TOKEN;
-
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -37,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import static org.apache.commons.csv.Token.Type.*;
+
 /**
  * Parses CSV files according to the specified format.
  *
@@ -50,7 +51,7 @@ import java.util.NoSuchElementException;
  * There are several static factory methods that can be used to create instances for various types of resources:
  * </p>
  * <ul>
- *     <li>{@link #parse(java.io.File, CSVFormat)}</li>
+ *     <li>{@link #parse(java.io.File, Charset, CSVFormat)}</li>
  *     <li>{@link #parse(String, CSVFormat)}</li>
  *     <li>{@link #parse(java.net.URL, java.nio.charset.Charset, CSVFormat)}</li>
  * </ul>
@@ -142,6 +143,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *
      * @param file
      *            a CSV file. Must not be null.
+     * @param charset
+     *            A charset
      * @param format
      *            the CSVFormat used for CSV parsing. Must not be null.
      * @return a new parser
@@ -150,11 +153,11 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @throws IOException
      *             If an I/O error occurs
      */
-    public static CSVParser parse(final File file, final CSVFormat format) throws IOException {
+    public static CSVParser parse(final File file, final Charset charset, final CSVFormat format) throws IOException {
         Assertions.notNull(file, "file");
         Assertions.notNull(format, "format");
-
-        return new CSVParser(new FileReader(file), format);
+        // Use the default Charset explicitly
+        return new CSVParser(new InputStreamReader(new FileInputStream(file), charset), format);
     }
 
     /**
@@ -242,7 +245,6 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         Assertions.notNull(reader, "reader");
         Assertions.notNull(format, "format");
 
-        format.validate();
         this.format = format;
         this.lexer = new Lexer(format, new ExtendedBufferedReader(reader));
         this.headerMap = this.initializeHeader();
@@ -340,7 +342,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @throws IOException
      *             on parse error or input read-failure
      */
-    public <T extends Collection<CSVRecord>> T getRecords(T records) throws IOException {
+    public <T extends Collection<CSVRecord>> T getRecords(final T records) throws IOException {
         CSVRecord rec;
         while ((rec = this.nextRecord()) != null) {
             records.add(rec);
@@ -360,28 +362,31 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         if (formatHeader != null) {
             hdrMap = new LinkedHashMap<String, Integer>();
 
-            String[] header = null;
+            String[] headerRecord = null;
             if (formatHeader.length == 0) {
                 // read the header from the first line of the file
                 final CSVRecord nextRecord = this.nextRecord();
                 if (nextRecord != null) {
-                    header = nextRecord.values();
+                    headerRecord = nextRecord.values();
                 }
             } else {
                 if (this.format.getSkipHeaderRecord()) {
                     this.nextRecord();
                 }
-                header = formatHeader;
+                headerRecord = formatHeader;
             }
 
             // build the name to index mappings
-            if (header != null) {
-                for (int i = 0; i < header.length; i++) {
-                    if (hdrMap.containsKey(header[i])) {
-                        throw new IllegalArgumentException("The header contains duplicate names: " +
-                                Arrays.toString(header));
+            if (headerRecord != null) {
+                for (int i = 0; i < headerRecord.length; i++) {
+                    final String header = headerRecord[i];
+                    final boolean containsHeader = hdrMap.containsKey(header);
+                    final boolean emptyHeader = header.trim().isEmpty();
+                    if (containsHeader && (!emptyHeader || (emptyHeader && !this.format.getIgnoreEmptyHeaders()))) {
+                        throw new IllegalArgumentException("The header contains a duplicate name: \"" + header +
+                                "\" in " + Arrays.toString(headerRecord));
                     }
-                    hdrMap.put(header[i], Integer.valueOf(i));
+                    hdrMap.put(header, Integer.valueOf(i));
                 }
             }
         }
