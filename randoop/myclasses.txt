@@ -1,4 +1,5 @@
 org.apache.commons.csv.Assertions
+org.apache.commons.csv.CSVFormat$Predefined
 org.apache.commons.csv.CSVFormat
 org.apache.commons.csv.CSVParser$1
 org.apache.commons.csv.CSVParser$2
@@ -9,6 +10,6 @@ org.apache.commons.csv.CSVRecord
 org.apache.commons.csv.Constants
 org.apache.commons.csv.ExtendedBufferedReader
 org.apache.commons.csv.Lexer
-org.apache.commons.csv.Quote
+org.apache.commons.csv.QuoteMode
 org.apache.commons.csv.Token$Type
 org.apache.commons.csv.Token
