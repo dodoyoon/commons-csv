@@ -26,9 +26,11 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -211,22 +213,81 @@ public class CSVPrinterTest {
         printer.close();
     }
 
+    private Connection geH2Connection() throws SQLException, ClassNotFoundException {
+        Class.forName("org.h2.Driver");
+        return DriverManager.getConnection("jdbc:h2:mem:my_test;", "sa", "");
+    }
+
     @Test
     public void testJdbcPrinter() throws IOException, ClassNotFoundException, SQLException {
         final StringWriter sw = new StringWriter();
-        Class.forName("org.h2.Driver");
-        final Connection connection = DriverManager.getConnection("jdbc:h2:mem:my_test;", "sa", "");
+        final Connection connection = geH2Connection();
         try {
+            setUpTable(connection);
             final Statement stmt = connection.createStatement();
-            stmt.execute("CREATE TABLE TEST(ID INT PRIMARY KEY, NAME VARCHAR(255))");
-            stmt.execute("insert into TEST values(1, 'r1')");
-            stmt.execute("insert into TEST values(2, 'r2')");
             final CSVPrinter printer = new CSVPrinter(sw, CSVFormat.DEFAULT);
             printer.printRecords(stmt.executeQuery("select ID, NAME from TEST"));
             assertEquals("1,r1" + recordSeparator + "2,r2" + recordSeparator, sw.toString());
             printer.close();
         } finally {
             connection.close();
+        }
+    }
+
+    @Test
+    public void testJdbcPrinterWithResultSet() throws IOException, ClassNotFoundException, SQLException {
+        final StringWriter sw = new StringWriter();
+        Class.forName("org.h2.Driver");
+        final Connection connection = geH2Connection();
+        try {
+            setUpTable(connection);
+            @SuppressWarnings("resource")
+            // Closed when the connection is closed.
+            final Statement stmt = connection.createStatement();
+            @SuppressWarnings("resource")
+            // Closed when the connection is closed.
+            final ResultSet resultSet = stmt.executeQuery("select ID, NAME from TEST");
+            final CSVPrinter printer = CSVFormat.DEFAULT.withHeader(resultSet).print(sw);
+            printer.printRecords(resultSet);
+            assertEquals("ID,NAME" + recordSeparator + "1,r1" + recordSeparator + "2,r2" + recordSeparator,
+                    sw.toString());
+            printer.close();
+        } finally {
+            connection.close();
+        }
+    }
+
+    @Test
+    public void testJdbcPrinterWithResultSetMetaData() throws IOException, ClassNotFoundException, SQLException {
+        final StringWriter sw = new StringWriter();
+        Class.forName("org.h2.Driver");
+        final Connection connection = geH2Connection();
+        try {
+            setUpTable(connection);
+            @SuppressWarnings("resource")
+            // Closed when the connection is closed.
+            final Statement stmt = connection.createStatement();
+            @SuppressWarnings("resource")
+            // Closed when the connection is closed.
+            final ResultSet resultSet = stmt.executeQuery("select ID, NAME from TEST");
+            final CSVPrinter printer = CSVFormat.DEFAULT.withHeader(resultSet.getMetaData()).print(sw);
+            printer.printRecords(resultSet);
+            assertEquals("ID,NAME" + recordSeparator + "1,r1" + recordSeparator + "2,r2" + recordSeparator,
+                    sw.toString());
+            printer.close();
+        } finally {
+            connection.close();
+        }
+    }
+
+    private void setUpTable(final Connection connection) throws SQLException {
+        final Statement statement = connection.createStatement();
+        try {
+            statement.execute("CREATE TABLE TEST(ID INT PRIMARY KEY, NAME VARCHAR(255))");
+            statement.execute("insert into TEST values(1, 'r1')");
+            statement.execute("insert into TEST values(2, 'r2')");
+        } finally {
+            statement.close();
         }
     }
 
@@ -494,6 +555,74 @@ public class CSVPrinterTest {
         printer.printRecord("x", "y", "z");
         assertEquals("C1,C2,C3\r\na,b,c\r\nx,y,z\r\n", sw.toString());
         printer.close();
+    }
+
+    @Test
+    public void testHeaderNotSet() throws IOException {
+        final StringWriter sw = new StringWriter();
+        final CSVPrinter printer = new CSVPrinter(sw, CSVFormat.DEFAULT.withQuote(null));
+        printer.printRecord("a", "b", "c");
+        printer.printRecord("x", "y", "z");
+        assertEquals("a,b,c\r\nx,y,z\r\n", sw.toString());
+        printer.close();
+    }
+
+    @Test
+    public void testSkipHeaderRecordTrue() throws IOException {
+    	// functionally identical to testHeaderNotSet, used to test CSV-153
+        final StringWriter sw = new StringWriter();
+        final CSVPrinter printer = new CSVPrinter(sw, CSVFormat.DEFAULT.withQuote(null)
+                .withHeader("C1", "C2", "C3").withSkipHeaderRecord(true));
+        printer.printRecord("a", "b", "c");
+        printer.printRecord("x", "y", "z");
+        assertEquals("a,b,c\r\nx,y,z\r\n", sw.toString());
+        printer.close();
+    }
+
+    @Test
+    public void testSkipHeaderRecordFalse() throws IOException {
+    	// functionally identical to testHeader, used to test CSV-153
+        final StringWriter sw = new StringWriter();
+        final CSVPrinter printer = new CSVPrinter(sw, CSVFormat.DEFAULT.withQuote(null)
+                .withHeader("C1", "C2", "C3").withSkipHeaderRecord(false));
+        printer.printRecord("a", "b", "c");
+        printer.printRecord("x", "y", "z");
+        assertEquals("C1,C2,C3\r\na,b,c\r\nx,y,z\r\n", sw.toString());
+        printer.close();
+    }
+
+    @Test
+    public void testHeaderCommentExcel() throws IOException {
+        final StringWriter sw = new StringWriter();
+        final Date now = new Date();
+        final CSVFormat format = CSVFormat.EXCEL;
+        final CSVPrinter csvPrinter = printWithHeaderComments(sw, now, format);
+        assertEquals("# Generated by Apache Commons CSV 1.1\r\n# " + now + "\r\nCol1,Col2\r\nA,B\r\nC,D\r\n", sw.toString());
+        csvPrinter.close();
+    }
+
+    @Test
+    public void testHeaderCommentTdf() throws IOException {
+        final StringWriter sw = new StringWriter();
+        final Date now = new Date();
+        final CSVFormat format = CSVFormat.TDF;
+        final CSVPrinter csvPrinter = printWithHeaderComments(sw, now, format);
+        assertEquals("# Generated by Apache Commons CSV 1.1\r\n# " + now + "\r\nCol1\tCol2\r\nA\tB\r\nC\tD\r\n", sw.toString());
+        csvPrinter.close();
+    }
+
+    private CSVPrinter printWithHeaderComments(final StringWriter sw, final Date now, final CSVFormat baseFormat)
+            throws IOException {
+        CSVFormat format = baseFormat;
+        // Use withHeaderComments first to test CSV-145
+        format = format.withHeaderComments("Generated by Apache Commons CSV 1.1", now);
+        format = format.withCommentMarker('#');
+        format = format.withHeader("Col1", "Col2");
+        final CSVPrinter csvPrinter = format.print(sw);
+        csvPrinter.printRecord("A", "B");
+        csvPrinter.printRecord("C", "D");
+        csvPrinter.close();
+        return csvPrinter;
     }
 
     @Test

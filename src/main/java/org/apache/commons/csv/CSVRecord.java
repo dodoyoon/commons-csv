@@ -36,6 +36,8 @@ public final class CSVRecord implements Serializable, Iterable<String> {
 
     private static final long serialVersionUID = 1L;
 
+    private final long characterPosition;
+
     /** The accumulated comments (if any) */
     private final String comment;
 
@@ -48,12 +50,13 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     /** The values of the record */
     private final String[] values;
 
-    CSVRecord(final String[] values, final Map<String, Integer> mapping,
-            final String comment, final long recordNumber) {
+    CSVRecord(final String[] values, final Map<String, Integer> mapping, final String comment, final long recordNumber,
+            final long characterPosition) {
         this.recordNumber = recordNumber;
         this.values = values != null ? values : EMPTY_STRING_ARRAY;
         this.mapping = mapping;
         this.comment = comment;
+        this.characterPosition = characterPosition;
     }
 
     /**
@@ -94,27 +97,36 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     public String get(final String name) {
         if (mapping == null) {
             throw new IllegalStateException(
-                    "No header mapping was specified, the record values can't be accessed by name");
+                "No header mapping was specified, the record values can't be accessed by name");
         }
         final Integer index = mapping.get(name);
         if (index == null) {
             throw new IllegalArgumentException(String.format("Mapping for %s not found, expected one of %s", name,
-                    mapping.keySet()));
+                mapping.keySet()));
         }
         try {
             return values[index.intValue()];
         } catch (final ArrayIndexOutOfBoundsException e) {
             throw new IllegalArgumentException(String.format(
-                    "Index for header '%s' is %d but CSVRecord only has %d values!", name, index,
-                    Integer.valueOf(values.length)));
+                "Index for header '%s' is %d but CSVRecord only has %d values!", name, index,
+                Integer.valueOf(values.length)));
         }
+    }
+
+    /**
+     * Returns the start position of this record as a character position in the source stream. This may or may not
+     * correspond to the byte position depending on the character set.
+     *
+     * @return the position of this record in the source stream.
+     */
+    public long getCharacterPosition() {
+        return characterPosition;
     }
 
     /**
      * Returns the comment for this record, if any.
      *
-     * @return the comment for this record, or null if no comment for this
-     *         record is available.
+     * @return the comment for this record, or null if no comment for this record is available.
      */
     public String getComment() {
         return comment;
@@ -150,6 +162,16 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     }
 
     /**
+     * Checks whether this record is a comment, false otherwise.
+     *
+     * @return true if this record is a comment, false otherwise
+     * @since 1.3
+     */
+    public boolean isComment() {
+        return comment != null;
+    }
+
+    /**
      * Checks whether a given column is mapped, i.e. its name has been defined to the parser.
      *
      * @param name
@@ -176,6 +198,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *
      * @return an iterator over the values of this record.
      */
+    @Override
     public Iterator<String> iterator() {
         return toList().iterator();
     }
@@ -183,7 +206,8 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     /**
      * Puts all values of this record into the given Map.
      *
-     * @param map The Map to populate.
+     * @param map
+     *            The Map to populate.
      * @return the given map.
      */
     <M extends Map<String, String>> M putIn(final M map) {
@@ -212,6 +236,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      * Converts the values to a List.
      *
      * TODO: Maybe make this public?
+     *
      * @return a new List
      */
     private List<String> toList() {
@@ -228,19 +253,20 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     }
 
     /**
-     * Returns a string representation of the contents of this record. The result is constructed by passing the internal
-     * values array to {@link Arrays#toString(Object[])}.
+     * Returns a string representation of the contents of this record. The result is constructed by comment, mapping,
+     * recordNumber and by passing the internal values array to {@link Arrays#toString(Object[])}.
      *
      * @return a String representation of this record.
      */
     @Override
     public String toString() {
-        return Arrays.toString(values);
+        return "CSVRecord [comment=" + comment + ", mapping=" + mapping +
+                ", recordNumber=" + recordNumber + ", values=" +
+                Arrays.toString(values) + "]";
     }
 
     String[] values() {
         return values;
     }
-
 
 }

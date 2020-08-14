@@ -30,10 +30,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -123,8 +125,8 @@ public class CSVFormatTest {
                 .withCommentMarker('#')
                 .withEscape('+')
                 .withHeader("One", "Two", "Three")
-                .withIgnoreEmptyLines(true)
-                .withIgnoreSurroundingSpaces(true)
+                .withIgnoreEmptyLines()
+                .withIgnoreSurroundingSpaces()
                 .withQuote('"')
                 .withQuoteMode(QuoteMode.ALL);
         final CSVFormat left = right
@@ -138,8 +140,8 @@ public class CSVFormatTest {
         final CSVFormat right = CSVFormat.newFormat('\'')
                 .withCommentMarker('#')
                 .withEscape('+')
-                .withIgnoreEmptyLines(true)
-                .withIgnoreSurroundingSpaces(true)
+                .withIgnoreEmptyLines()
+                .withIgnoreSurroundingSpaces()
                 .withQuote('"')
                 .withQuoteMode(QuoteMode.ALL);
         final CSVFormat left = right
@@ -153,7 +155,7 @@ public class CSVFormatTest {
         final CSVFormat right = CSVFormat.newFormat('\'')
                 .withCommentMarker('#')
                 .withEscape('+')
-                .withIgnoreSurroundingSpaces(true)
+                .withIgnoreSurroundingSpaces()
                 .withQuote('"')
                 .withQuoteMode(QuoteMode.ALL);
         final CSVFormat left = right
@@ -187,8 +189,8 @@ public class CSVFormatTest {
                 .withRecordSeparator(CR)
                 .withCommentMarker('#')
                 .withEscape('+')
-                .withIgnoreEmptyLines(true)
-                .withIgnoreSurroundingSpaces(true)
+                .withIgnoreEmptyLines()
+                .withIgnoreSurroundingSpaces()
                 .withQuote('"')
                 .withQuoteMode(QuoteMode.ALL);
         final CSVFormat left = right
@@ -203,8 +205,8 @@ public class CSVFormatTest {
                 .withRecordSeparator(CR)
                 .withCommentMarker('#')
                 .withEscape('+')
-                .withIgnoreEmptyLines(true)
-                .withIgnoreSurroundingSpaces(true)
+                .withIgnoreEmptyLines()
+                .withIgnoreSurroundingSpaces()
                 .withQuote('"')
                 .withQuoteMode(QuoteMode.ALL)
                 .withNullString("null");
@@ -220,12 +222,12 @@ public class CSVFormatTest {
                 .withRecordSeparator(CR)
                 .withCommentMarker('#')
                 .withEscape('+')
-                .withIgnoreEmptyLines(true)
-                .withIgnoreSurroundingSpaces(true)
+                .withIgnoreEmptyLines()
+                .withIgnoreSurroundingSpaces()
                 .withQuote('"')
                 .withQuoteMode(QuoteMode.ALL)
                 .withNullString("null")
-                .withSkipHeaderRecord(true);
+                .withSkipHeaderRecord();
         final CSVFormat left = right
                 .withSkipHeaderRecord(false);
 
@@ -267,7 +269,7 @@ public class CSVFormatTest {
 
     @Test
     public void testNullRecordSeparatorCsv106() {
-        final CSVFormat format = CSVFormat.newFormat(';').withSkipHeaderRecord(true).withHeader("H1", "H2");
+        final CSVFormat format = CSVFormat.newFormat(';').withSkipHeaderRecord().withHeader("H1", "H2");
         final String formatStr = format.format("A", "B");
         assertNotNull(formatStr);
         assertFalse(formatStr.endsWith("null"));
@@ -375,15 +377,41 @@ public class CSVFormatTest {
     }
 
     @Test
+    public void testJiraCsv154_withCommentMarker() throws IOException {
+        final String comment = "This is a header comment";
+        final CSVFormat format = CSVFormat.EXCEL.withHeader("H1", "H2").withCommentMarker('#').withHeaderComments(comment);
+        final StringBuilder out = new StringBuilder();
+        final CSVPrinter printer = format.print(out);
+        printer.print("A");
+        printer.print("B");
+        printer.close();
+        final String s = out.toString();
+        Assert.assertTrue(s, s.contains(comment));
+    }
+
+    @Test
+    public void testJiraCsv154_withHeaderComments() throws IOException {
+        final String comment = "This is a header comment";
+        final CSVFormat format = CSVFormat.EXCEL.withHeader("H1", "H2").withHeaderComments(comment).withCommentMarker('#');
+        final StringBuilder out = new StringBuilder();
+        final CSVPrinter printer = format.print(out);
+        printer.print("A");
+        printer.print("B");
+        printer.close();
+        final String s = out.toString();
+        Assert.assertTrue(s, s.contains(comment));
+    }
+    
+    @Test
     public void testWithIgnoreEmptyLines() throws Exception {
         assertFalse(CSVFormat.DEFAULT.withIgnoreEmptyLines(false).getIgnoreEmptyLines());
-        assertTrue(CSVFormat.DEFAULT.withIgnoreEmptyLines(true).getIgnoreEmptyLines());
+        assertTrue(CSVFormat.DEFAULT.withIgnoreEmptyLines().getIgnoreEmptyLines());
     }
 
     @Test
     public void testWithIgnoreSurround() throws Exception {
         assertFalse(CSVFormat.DEFAULT.withIgnoreSurroundingSpaces(false).getIgnoreSurroundingSpaces());
-        assertTrue(CSVFormat.DEFAULT.withIgnoreSurroundingSpaces(true).getIgnoreSurroundingSpaces());
+        assertTrue(CSVFormat.DEFAULT.withIgnoreSurroundingSpaces().getIgnoreSurroundingSpaces());
     }
 
     @Test

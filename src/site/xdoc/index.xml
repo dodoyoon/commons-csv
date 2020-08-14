@@ -36,32 +36,53 @@ limitations under the License.
 </section>
 <!-- ================================================== -->
 <section name="Documentation">
-  <p>
-    The package descriptions in the <a href="javadocs/api-release/index.html">JavaDoc</a> give an overview of the available features
-    and various <a href="project-reports.html">project reports</a> are provided.
-  </p>
-  <p>
-    The JavaDoc API documents for the <a href="javadocs/api-1.0/index.html">current stable release 1.0</a> [Java 6.0+] can be viewed in a web browser.
-  </p>
-  <p>
-    The <a href="source-repository.html">subversion repository</a> can be
-    <a href="http://svn.apache.org/viewvc/commons/proper/csv/trunk/">browsed</a>, or you can browse/contribute via <a href="https://github.com/apache/commons-csv">GitHub</a>.
-  </p>
-</section>
-<!-- ================================================== -->
-<section name="Release Information">
-<p>The latest stable release of csv is 1.0. You may: </p>
+<p>
+An overview of the functionality is provided in the
+<a href="user-guide.html">user guide</a>.
+Various <a href="project-reports.html">project reports</a> are also available.
+</p>
+<p>
+The Javadoc API documents are available online:
+</p>
 <ul>
-  <li>Download <a href="http://commons.apache.org/csv/download_csv.cgi">1.0</a></li>
-  <li>Read the <a href="release-notes/RELEASE-NOTES-1.0.txt">1.0 release notes</a></li>
+  <li><a href="apidocs/index.html">Javadoc trunk</a></li>            
+  <li><a href="archives/1.2/apidocs/index.html">Javadoc 1.2</a></li>
+  <li><a href="archives/1.1/apidocs/index.html">Javadoc 1.1</a></li>
+  <li><a href="archives/1.0/apidocs/index.html">Javadoc 1.0</a></li>
 </ul>
 <p>
-  Alternatively you can pull it from the central Maven repositories:
-  <pre>
+The <a href="source-repository.html">subversion repository</a> can be
+<a href="http://svn.apache.org/viewvc/commons/proper/csv/trunk/">browsed</a>.
+</p>
+</section>
+<!-- ================================================== -->
+<section name="Releases">
+<ul>
+  <li><a href="http://commons.apache.org/csv/download_csv.cgi">Apache Commons CSV 1.2 (mirrors)</a> requires Java 1.6</li>
+  <li><a href="http://archive.apache.org/dist/commons/csv/">Apache Commons CSV 1.1 (archives)</a> requires Java 1.6</li>
+  <li><a href="http://archive.apache.org/dist/commons/csv/">Apache Commons CSV 1.0 (archives)</a> requires Java 1.6</li>
+</ul>
+<p>
+See the
+<a href="http://commons.apache.org/csv/download_csv.cgi">Download Page</a>
+for the latest releases.<br />
+</p>
+<p>
+<a href="changes-report.html">Change reports</a> are also available.
+</p>
+<p>
+For previous releases, see the <a href="http://archive.apache.org/dist/commons/csv/">Apache Archive</a>
+</p>
+<p>
+  Alternatively, you can pull it from a Maven repository:
+  <pre>&lt;dependency&gt;
     &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
     &lt;artifactId&gt;commons-csv&lt;/artifactId&gt;
-    &lt;version&gt;1.0&lt;/version&gt;
-  </pre>
+    &lt;version&gt;1.2&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+</p>
+<p>
+  For other dependency access methods, see <a href="dependency-info.html">Dependency Information</a> 
 </p>
 </section>
 
@@ -69,9 +90,6 @@ limitations under the License.
   <p>The latest code can be checked out from our Subversion repository at <a href="http://svn.apache.org/repos/asf/commons/proper/csv/trunk/">http://svn.apache.org/repos/asf/commons/proper/csv/trunk/</a>.
     You can build the component using Apache Maven using <code>mvn clean package</code>.
   </p>
-  <p>Note that building the website currently does not work when building with JDK 8.
-    This is due to incompatibilities between JDK 8 and the <a href="http://mojo.codehaus.org/findbugs-maven-plugin/">maven-findbugs-plugin</a>
-    and the <a href="http://www.eclemma.org/jacoco/trunk/doc/maven.html">maven-jacoco-plugin</a>.</p>
 </section>
 <!-- ================================================== -->
 <section name="Getting Involved">

@@ -34,7 +34,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 /**
- *
+ * Lexical analyzer.
  *
  * @version $Id$
  */
@@ -58,7 +58,6 @@ final class Lexer implements Closeable {
     /** The input stream */
     private final ExtendedBufferedReader reader;
 
-    /** INTERNAL API. but ctor needs to be called dynamically by PerformanceTest class */
     Lexer(final CSVFormat format, final ExtendedBufferedReader reader) {
         this.reader = reader;
         this.delimiter = format.getDelimiter();
@@ -71,8 +70,9 @@ final class Lexer implements Closeable {
 
     /**
      * Returns the next token.
-     * <p/>
+     * <p>
      * A token corresponds to a term, a record change or an end-of-file indicator.
+     * </p>
      *
      * @param token
      *            an existing Token object to reuse. The caller is responsible to initialize the Token.
@@ -198,7 +198,7 @@ final class Lexer implements Closeable {
                 break;
             } else if (isEscape(ch)) {
                 final int unescaped = readEscape();
-                if (unescaped == Constants.END_OF_STREAM) { // unexpected char after escape
+                if (unescaped == END_OF_STREAM) { // unexpected char after escape
                     token.content.append((char) ch).append((char) reader.getLastChar());
                 } else {
                     token.content.append((char) unescaped);
@@ -246,7 +246,7 @@ final class Lexer implements Closeable {
 
             if (isEscape(c)) {
                 final int unescaped = readEscape();
-                if (unescaped == Constants.END_OF_STREAM) { // unexpected char after escape
+                if (unescaped == END_OF_STREAM) { // unexpected char after escape
                     token.content.append((char) c).append((char) reader.getLastChar());
                 } else {
                     token.content.append((char) unescaped);
@@ -299,6 +299,15 @@ final class Lexer implements Closeable {
      */
     long getCurrentLineNumber() {
         return reader.getCurrentLineNumber();
+    }
+
+    /**
+     * Returns the current character position
+     *
+     * @return the current character position
+     */
+    long getCharacterPosition() {
+        return reader.getPosition();
     }
 
     // TODO escape handling needs more work
@@ -426,6 +435,7 @@ final class Lexer implements Closeable {
      * @throws IOException
      *             If an I/O error occurs
      */
+    @Override
     public void close() throws IOException {
         reader.close();
     }
