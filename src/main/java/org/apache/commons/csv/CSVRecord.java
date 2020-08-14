@@ -123,15 +123,25 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     /**
      * Returns the number of this record in the parsed CSV file.
      *
+     * <p>
+     * <strong>ATTENTION:</strong> If your CSV input has multi-line values, the returned number does not correspond to
+     * the current line number of the parser that created this record.
+     * </p>
+     *
      * @return the number of this record.
+     * @see CSVParser#getCurrentLineNumber()
      */
     public long getRecordNumber() {
         return recordNumber;
     }
 
     /**
-     * Returns true if this record is consistent, false if not. Currently, the only check is matching the record size to
-     * the header size. Some programs can export files that fails this test but still produce parsable files.
+     * Tells whether the record size matches the header size.
+     *
+     * <p>
+     * Returns true if the sizes for this record match and false if not. Some programs can export files that fail this
+     * test but still produce parsable files.
+     * </p>
      *
      * @return true of this record is valid, false if not
      */
@@ -217,6 +227,12 @@ public final class CSVRecord implements Serializable, Iterable<String> {
         return putIn(new HashMap<String, String>(values.length));
     }
 
+    /**
+     * Returns a string representation of the contents of this record. The result is constructed by passing the internal
+     * values array to {@link Arrays#toString(Object[])}.
+     *
+     * @return a String representation of this record.
+     */
     @Override
     public String toString() {
         return Arrays.toString(values);

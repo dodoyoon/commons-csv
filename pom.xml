@@ -15,8 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.apache.commons</groupId>
@@ -25,7 +24,7 @@ limitations under the License.
   </parent>
   <groupId>org.apache.commons</groupId>
   <artifactId>commons-csv</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <name>Apache Commons CSV</name>
   <url>http://commons.apache.org/proper/commons-csv/</url>
   <description>
@@ -43,15 +42,13 @@ CSV files of various types.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <!-- 2.2 is last version compatible with Java 1.5 -->
-      <version>2.2</version>
+      <version>2.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <!-- 1.3.172 requires Java 1.6 -->
-      <version>1.3.168</version>
+      <version>1.4.181</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -96,9 +93,9 @@ CSV files of various types.
   </contributors>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/commons/proper/csv/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/commons/proper/csv/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/commons/proper/csv/trunk</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/commons/proper/csv/tags/CSV_1.0</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/commons/proper/csv/tags/CSV_1.0</developerConnection>
+    <url>http://svn.apache.org/viewvc/commons/proper/csv/tags/CSV_1.0</url>
   </scm>
 
   <issueManagement>
@@ -109,13 +106,14 @@ CSV files of various types.
   <distributionManagement>
     <site>
       <id>apache.website</id>
-      <name>Apache Website</name>
-      <url>${commons.deployment.protocol}://people.apache.org/www/commons.apache.org/csv/</url>
+      <name>Apache Commons Site</name>
+      <url>scm:svn:https://svn.apache.org/repos/infra/websites/production/commons/content/proper/commons-csv/</url>
     </site>
   </distributionManagement>
 
   <properties>
     <commons.release.version>1.0</commons.release.version>
+    <commons.release.desc>(Java 6.0+)</commons.release.desc>
     <!-- The RC version used in the staging repository URL. -->
     <commons.rc.version>RC1</commons.rc.version>
     <commons.componentid>csv</commons.componentid>
@@ -130,6 +128,10 @@ CSV files of various types.
 
     <checkstyle.version>2.12.1</checkstyle.version>
     <checkstyle.header.file>${basedir}/LICENSE-header.txt</checkstyle.header.file>
+
+    <!-- Override jacoco version from commons parent 34, since it doesn't work with Java 8.
+      Remove this after commons parent 35 has been released. -->
+    <commons.jacoco.version>0.7.1.201405082137</commons.jacoco.version>
   </properties>
 
   <build>
@@ -164,6 +166,30 @@ CSV files of various types.
           <headerLocation>${checkstyle.header.file}</headerLocation>
         </configuration>
       </plugin>
+
+      <!-- We need to add our test data files to rat exclusions -->
+      <!-- Needed for command-line access, e.g mvn apache-rat:rat and mvn apache-rat:check -->
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>${commons.rat.version}</version>
+        <!-- Should agree with config in reporting section -->
+        <configuration>
+          <excludes>
+            <exclude>src/test/resources/CSVFileParser/bom.csv</exclude>
+            <exclude>src/test/resources/CSVFileParser/test.csv</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_default.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_default_comment.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_rfc4180.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_rfc4180_trim.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/testCSV85.csv</exclude>
+            <exclude>src/test/resources/CSVFileParser/testCSV85_default.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/testCSV85_ignoreEmpty.txt</exclude>
+            <exclude>src/test/resources/ferc.gov/contract.txt</exclude>
+            <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
@@ -191,7 +217,7 @@ CSV files of various types.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.1</version>
+        <version>3.2</version>
         <configuration>
           <targetJdk>${maven.compiler.target}</targetJdk>
         </configuration>
@@ -199,7 +225,7 @@ CSV files of various types.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>2.5.4</version>
+        <version>3.0.0</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -255,7 +281,77 @@ CSV files of various types.
         <artifactId>javancss-maven-plugin</artifactId>
         <version>2.0</version>
       </plugin>
+
+      <!-- We need to add our test data files to rat exclusions -->
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>${commons.rat.version}</version>
+        <!-- Should agree with config in build section -->
+        <configuration>
+          <excludes>
+            <exclude>src/test/resources/CSVFileParser/bom.csv</exclude>
+            <exclude>src/test/resources/CSVFileParser/test.csv</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_default.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_default_comment.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_rfc4180.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/test_rfc4180_trim.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/testCSV85.csv</exclude>
+            <exclude>src/test/resources/CSVFileParser/testCSV85_default.txt</exclude>
+            <exclude>src/test/resources/CSVFileParser/testCSV85_ignoreEmpty.txt</exclude>
+            <exclude>src/test/resources/ferc.gov/contract.txt</exclude>
+            <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
   </reporting>
+
+  <profiles>
+    <profile>
+      <id>setup-checkout</id>
+      <activation>
+        <file>
+          <missing>site-content</missing>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>1.7</version>
+            <executions>
+              <execution>
+                <id>prepare-checkout</id>
+                <phase>pre-site</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <tasks>
+                    <exec executable="svn">
+                      <arg line="checkout --depth immediates ${commons.scmPubUrl} ${commons.scmPubCheckoutDirectory}" />
+                    </exec>
+
+                    <exec executable="svn">
+                      <arg line="update --set-depth exclude ${commons.scmPubCheckoutDirectory}/javadocs" />
+                    </exec>
+
+                    <pathconvert pathsep=" " property="dirs">
+                      <dirset dir="${commons.scmPubCheckoutDirectory}" includes="*" />
+                    </pathconvert>
+                    <exec executable="svn">
+                      <arg line="update --set-depth infinity ${dirs}" />
+                    </exec>
+                  </tasks>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

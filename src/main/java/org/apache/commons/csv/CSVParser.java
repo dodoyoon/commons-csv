@@ -20,7 +20,6 @@ package org.apache.commons.csv;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -29,7 +28,6 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -137,7 +135,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * Creates a parser for the given {@link File}.
      *
      * <p><strong>Note:</strong> This method internally creates a FileReader using
-     * {@link FileReader#FileReader(java.io.File)} which in turn relies on the default encoding of the JVM that
+     * {@link java.io.FileReader#FileReader(java.io.File)} which in turn relies on the default encoding of the JVM that
      * is executing the code. If this is insufficient create a URL to the file and use
      * {@link #parse(URL, Charset, CSVFormat)}</p>
      *
@@ -324,26 +322,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *             on parse error or input read-failure
      */
     public List<CSVRecord> getRecords() throws IOException {
-        return getRecords(new ArrayList<CSVRecord>());
-    }
-
-    /**
-     * Parses the CSV input according to the given format and adds the content to the collection of {@link CSVRecord
-     * CSVRecords}.
-     *
-     * <p>
-     * The returned content starts at the current parse-position in the stream.
-     * </p>
-     *
-     * @param records
-     *            The collection to add to.
-     * @param <T> the type of collection used.
-     * @return a collection of {@link CSVRecord CSVRecords}, may be empty
-     * @throws IOException
-     *             on parse error or input read-failure
-     */
-    public <T extends Collection<CSVRecord>> T getRecords(final T records) throws IOException {
         CSVRecord rec;
+        List<CSVRecord> records = new ArrayList<CSVRecord>();
         while ((rec = this.nextRecord()) != null) {
             records.add(rec);
         }
@@ -382,7 +362,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
                     final String header = headerRecord[i];
                     final boolean containsHeader = hdrMap.containsKey(header);
                     final boolean emptyHeader = header == null || header.trim().isEmpty();
-                    if (containsHeader && (!emptyHeader || (emptyHeader && !this.format.getIgnoreEmptyHeaders()))) {
+                    if (containsHeader &&
+                            (!emptyHeader || (emptyHeader && !this.format.getAllowMissingColumnNames()))) {
                         throw new IllegalArgumentException("The header contains a duplicate name: \"" + header +
                                 "\" in " + Arrays.toString(headerRecord));
                     }
@@ -456,7 +437,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     /**
      * Parses the next record from the current point in the stream.
      *
-     * @return the record as an array of values, or <tt>null</tt> if the end of the stream has been reached
+     * @return the record as an array of values, or {@code null} if the end of the stream has been reached
      * @throws IOException
      *             on parse error or input read-failure
      */

@@ -122,7 +122,7 @@ public class LexerTest {
                 "third,line,#no-comment\n"+
                 "# penultimate comment\n"+
                 "# Final comment\n";
-        final CSVFormat format = CSVFormat.DEFAULT.withCommentStart('#');
+        final CSVFormat format = CSVFormat.DEFAULT.withCommentMarker('#');
         final Lexer parser = getLexer(code, format);
 
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "first"));
@@ -158,7 +158,7 @@ public class LexerTest {
                 "\n"+                      // 6b
                 "\n"+                      // 6c
                 "# Final comment\n";       // 7
-        final CSVFormat format = CSVFormat.DEFAULT.withCommentStart('#').withIgnoreEmptyLines(false);
+        final CSVFormat format = CSVFormat.DEFAULT.withCommentMarker('#').withIgnoreEmptyLines(false);
         assertFalse("Should not ignore empty lines", format.getIgnoreEmptyLines());
 
         final Lexer parser = getLexer(code, format);
@@ -198,7 +198,7 @@ public class LexerTest {
         */
         final String code = "a,\\,,b\\\n\\,,";
         final CSVFormat format = CSVFormat.DEFAULT;
-        assertFalse(format.isEscaping());
+        assertFalse(format.isEscapeCharacterSet());
         final Lexer parser = getLexer(code, format);
 
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "a"));
@@ -220,7 +220,7 @@ public class LexerTest {
         */
         final String code = "a,\\,,b\\\\\n\\,,\\\nc,d\\\r\ne";
         final CSVFormat format = formatWithEscaping.withIgnoreEmptyLines(false);
-        assertTrue(format.isEscaping());
+        assertTrue(format.isEscapeCharacterSet());
         final Lexer parser = getLexer(code, format);
 
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "a"));
@@ -279,7 +279,7 @@ public class LexerTest {
         *       ;;
         */
         final String code = "a;'b and '' more\n'\n!comment;;;;\n;;";
-        final CSVFormat format = CSVFormat.DEFAULT.withQuoteChar('\'').withCommentStart('!').withDelimiter(';');
+        final CSVFormat format = CSVFormat.DEFAULT.withQuote('\'').withCommentMarker('!').withDelimiter(';');
         final Lexer parser = getLexer(code, format);
         assertThat(parser.nextToken(new Token()), matches(TOKEN, "a"));
         assertThat(parser.nextToken(new Token()), matches(EORECORD, "b and ' more\n"));

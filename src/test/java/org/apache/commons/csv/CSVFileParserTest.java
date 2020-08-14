@@ -90,7 +90,7 @@ public class CSVFileParserTest {
         final String[] split = line.split(" ");
         assertTrue(testName+" require 1 param", split.length >= 1);
          // first line starts with csv data file name
-        CSVFormat format = CSVFormat.newFormat(',').withQuoteChar('"');
+        CSVFormat format = CSVFormat.newFormat(',').withQuote('"');
         boolean checkComments = false;
         for(int i=1; i < split.length; i++) {
             final String option = split[i];
@@ -100,7 +100,7 @@ public class CSVFileParserTest {
             } else if ("IgnoreSpaces".equalsIgnoreCase(option_parts[0])) {
                 format = format.withIgnoreSurroundingSpaces(Boolean.parseBoolean(option_parts[1]));
             } else if ("CommentStart".equalsIgnoreCase(option_parts[0])) {
-                format = format.withCommentStart(option_parts[1].charAt(0));
+                format = format.withCommentMarker(option_parts[1].charAt(0));
             } else if ("CheckComments".equalsIgnoreCase(option_parts[0])) {
                 checkComments = true;
             } else {
@@ -134,7 +134,7 @@ public class CSVFileParserTest {
         final String[] split = line.split(" ");
         assertTrue(testName + " require 1 param", split.length >= 1);
         // first line starts with csv data file name
-        CSVFormat format = CSVFormat.newFormat(',').withQuoteChar('"');
+        CSVFormat format = CSVFormat.newFormat(',').withQuote('"');
         boolean checkComments = false;
         for (int i = 1; i < split.length; i++) {
             final String option = split[i];
@@ -144,7 +144,7 @@ public class CSVFileParserTest {
             } else if ("IgnoreSpaces".equalsIgnoreCase(option_parts[0])) {
                 format = format.withIgnoreSurroundingSpaces(Boolean.parseBoolean(option_parts[1]));
             } else if ("CommentStart".equalsIgnoreCase(option_parts[0])) {
-                format = format.withCommentStart(option_parts[1].charAt(0));
+                format = format.withCommentMarker(option_parts[1].charAt(0));
             } else if ("CheckComments".equalsIgnoreCase(option_parts[0])) {
                 checkComments = true;
             } else {

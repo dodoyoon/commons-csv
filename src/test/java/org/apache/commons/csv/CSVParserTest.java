@@ -40,7 +40,6 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -113,7 +112,7 @@ public class CSVParserTest {
         };
 
 
-        final CSVFormat format = CSVFormat.newFormat(',').withQuoteChar('\'')
+        final CSVFormat format = CSVFormat.newFormat(',').withQuote('\'')
                                .withRecordSeparator(CRLF).withEscape('/').withIgnoreEmptyLines(true);
 
         final CSVParser parser = CSVParser.parse(code, format);
@@ -242,7 +241,7 @@ public class CSVParserTest {
     @Test(expected = NoSuchElementException.class)
     public void testClose() throws Exception {
         final Reader in = new StringReader("# comment\na,b,c\n1,2,3\nx,y,z");
-        final CSVParser parser = CSVFormat.DEFAULT.withCommentStart('#').withHeader().parse(in);
+        final CSVParser parser = CSVFormat.DEFAULT.withCommentMarker('#').withHeader().parse(in);
         final Iterator<CSVRecord> records = parser.iterator();
         assertTrue(records.hasNext());
         parser.close();
@@ -275,7 +274,7 @@ public class CSVParserTest {
         };
 
         CSVFormat format = CSVFormat.DEFAULT;
-        assertFalse(format.isCommentingEnabled());
+        assertFalse(format.isCommentMarkerSet());
 
         CSVParser parser = CSVParser.parse(code, format);
         List<CSVRecord> records = parser.getRecords();
@@ -288,7 +287,7 @@ public class CSVParserTest {
                 {"\n", " ", "#"},
         };
 
-        format = CSVFormat.DEFAULT.withCommentStart('#');
+        format = CSVFormat.DEFAULT.withCommentMarker('#');
         parser.close();
         parser = CSVParser.parse(code, format);
         records = parser.getRecords();
@@ -531,14 +530,6 @@ public class CSVParserTest {
         parser.close();
     }
 
-    @Test
-    public void testGetOneLineCustomCollection() throws IOException {
-        final CSVParser parser = CSVParser.parse(CSV_INPUT_1, CSVFormat.DEFAULT);
-        final CSVRecord record = parser.getRecords(new LinkedList<CSVRecord>()).getFirst();
-        assertArrayEquals(RESULT[0], record.values());
-        parser.close();
-    }
-
     /**
      * Tests reusing a parser to process new string records one at a time as they are being discovered. See [CSV-110].
      *
@@ -658,20 +649,20 @@ public class CSVParserTest {
     @Test
     public void testHeadersMissing() throws Exception {
         final Reader in = new StringReader("a,,c,,d\n1,2,3,4\nx,y,z,zz");
-        CSVFormat.DEFAULT.withHeader().withIgnoreEmptyHeaders(true).parse(in).iterator();
+        CSVFormat.DEFAULT.withHeader().withAllowMissingColumnNames(true).parse(in).iterator();
     }
 
     @Test
     public void testHeaderMissingWithNull() throws Exception {
         final Reader in = new StringReader("a,,c,,d\n1,2,3,4\nx,y,z,zz");
-        CSVFormat.DEFAULT.withHeader().withNullString("").withIgnoreEmptyHeaders(true).parse(in).iterator();
+        CSVFormat.DEFAULT.withHeader().withNullString("").withAllowMissingColumnNames(true).parse(in).iterator();
     }
 
     @Test
     public void testHeaderComment() throws Exception {
         final Reader in = new StringReader("# comment\na,b,c\n1,2,3\nx,y,z");
 
-        final Iterator<CSVRecord> records = CSVFormat.DEFAULT.withCommentStart('#').withHeader().parse(in).iterator();
+        final Iterator<CSVRecord> records = CSVFormat.DEFAULT.withCommentMarker('#').withHeader().parse(in).iterator();
 
         for (int i = 0; i < 2; i++) {
             assertTrue(records.hasNext());

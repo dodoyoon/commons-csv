@@ -8,7 +8,7 @@ INTRODUCTION:
 This document contains the release notes for the 1.0 version of Apache Commons CSV.
 Commons CSV reads and writes files in variations of the Comma Separated Value (CSV) format.
 
-CSV requires at least Java 5.0.
+CSV requires at least Java 6.0.
 
 The Apache Commons CSV library provides a simple interface for reading and writing
 CSV files of various types.
@@ -34,6 +34,9 @@ o CSV-48:   Predefined format for MYSQL
 FIXED BUGS
 ============
 
+o CSV-125:  No longer works with Java 6
+o CSV-122:  NullPointerException when empty header string and and null string of "".
+            Thanks to Mike Lewis.
 o CSV-118:  CSVRecord.toMap() throws NPE on formats with no
             headers. Thanks to Enrique Lara.
 o CSV-113:  Check whether ISE/IAE are being used appropriately
