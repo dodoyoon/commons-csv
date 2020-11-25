@@ -9,7 +9,6 @@ pipeline {
                sh 'mvn package -Dmaven.test.skip=true' 
             }
         }
-
         stage('Test'){
             steps{
                 sh script:'''
@@ -33,7 +32,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Filter & Result'){
             steps{
                 sh script:'''
