@@ -41,7 +41,7 @@ pipeline {
                 cd $(git rev-parse --show-toplevel)/randoop
 
                 python3 /home/kaydeee329/CTG-Randoop/randoop2json.py $(pwd)/err$BUILD_NUMBER.md
-                python3 /home/kaydeee329/CTG-Randoop/filter_result.py $(pwd)/err$(( ${BUILD_NUMBER#0} -1 )).md.json $(pwd)/err$BUILD_NUMBER.md.json 4 $(git rev-parse HEAD^1) $(git rev-parse HEAD) filtered_errors$BUILD_NUMBER.md kaydeee329@localhost 3 || true
+                python3 /home/kaydeee329/CTG-Randoop/filter_result.py $(pwd)/err$(( ${BUILD_NUMBER#0} -1 )).md.json $(pwd)/err$BUILD_NUMBER.md.json 4 $(git rev-parse HEAD^1) $(git rev-parse HEAD) filtered_errors$BUILD_NUMBER.md $(git rev-parse --show-toplevel)/src/main/java/org kaydeee329@localhost 3 || true
                 '''
             }
         }
