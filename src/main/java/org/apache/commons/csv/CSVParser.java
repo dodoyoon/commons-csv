@@ -285,7 +285,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @return a copy of the header map that iterates in column order.
      */
     public Map<String, Integer> getHeaderMap() {
-        return this.headerMap == null ? null : new LinkedHashMap<String, Integer>(this.headerMap);
+        return new LinkedHashMap<String, Integer>(this.headerMap);
     }
 
     /**
