@@ -34,27 +34,17 @@ pipeline {
             }
         }
 
-        stage('Filter'){
+        stage('Filter & Result'){
             steps{
                 sh script:'''
+                git push gerrit HEAD:refs/for/test
                 cd $(git rev-parse --show-toplevel)/randoop
 
                 python3 /home/kaydeee329/CTG-Randoop/randoop2json.py $(pwd)/err$BUILD_NUMBER.md
-                python3 /home/kaydeee329/CTG-Randoop/filter_result.py $(pwd)/err$(( ${BUILD_NUMBER#0} -1 )).md.json $(pwd)/err$BUILD_NUMBER.md.json 4 $(git rev-parse HEAD^1) $(git rev-parse HEAD) filtered_errors$BUILD_NUMBER.md || true
+                python3 /home/kaydeee329/CTG-Randoop/filter_result.py $(pwd)/err$(( ${BUILD_NUMBER#0} -1 )).md.json $(pwd)/err$BUILD_NUMBER.md.json 4 $(git rev-parse HEAD^1) $(git rev-parse HEAD) filtered_errors$BUILD_NUMBER.md kaydeee329@localhost 3 || true
                 '''
             }
         }
-        stage('Result'){
-            steps{
-                sh script:'''
-                cd $(git rev-parse --show-toplevel)/randoop
-                git add filtered_errors$BUILD_NUMBER.md || true
-                git commit --amend --no-edit
-                git push gerrit HEAD:refs/for/test
-                '''
-            }
-        }
-
     }
 }
 
